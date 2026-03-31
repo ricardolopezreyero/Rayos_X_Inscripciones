@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rayos X Conversacional SuperLeads</title>
+  <meta name="description" content="Radiografía guiada del sistema de inscripciones para detectar cuellos de botella y recomendar productos SuperLeads.">
+  <link rel="icon" type="image/png" href="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/68bdf4dd6d0aaa7737d9cfdd.png">
+  <link rel="apple-touch-icon" href="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/68bdf4dd6d0aaa7737d9cfdd.png">
+  <link rel="shortcut icon" href="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/68bdf4dd6d0aaa7737d9cfdd.png">
+  <meta name="theme-color" content="#000000">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="background-glow" aria-hidden="true"></div>
+  <main class="shell">
+    <section id="welcome-screen" class="welcome-screen fade-in">
+      <img class="brand-logo" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/68ae10743ba618f9c7da90e0.png" alt="SuperLeads">
+      <h1>Radiografía del Sistema de Inscripciones</h1>
+      <p class="subtitle">Descubre el cuello exacto que hoy está frenando el crecimiento de tu institución</p>
+      <p class="microcopy-line">No necesitas tener todos los números para avanzar.</p>
+      <p class="microcopy-line">Con lo que sí sabes, ya podemos ubicar dónde se está rompiendo el proceso.</p>
+      <p class="microcopy-line">Esto no busca perfección contable; busca claridad comercial.</p>
+      <button id="start-btn" class="btn btn-primary">Iniciar diagnóstico →</button>
+    </section>
+
+    <section id="diagnostic-screen" class="panel hidden" aria-live="polite">
+      <header class="panel-header">
+        <img class="mini-logo" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/68ae10743ba618f9c7da90e0.png" alt="SuperLeads">
+        <div id="institution-pill" class="institution-pill hidden"></div>
+        <div class="progress-wrap">
+          <div class="progress-head">
+            <span id="step-label">Etapa</span>
+            <span id="progress-label">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="progress-bar" class="progress-bar"></div>
+          </div>
+        </div>
+      </header>
+
+      <article class="card question-card">
+        <span id="stage-chip" class="chip">Bloque</span>
+        <h2 id="question-title">Pregunta</h2>
+        <p id="question-help" class="question-help">Tus respuestas nos permiten encontrar el cuello más probable del sistema.</p>
+        <p id="validation-message" class="validation-message hidden"></p>
+        <div id="question-input" class="question-input"></div>
+      </article>
+
+      <footer class="nav-actions">
+        <button id="prev-btn" class="btn btn-ghost" type="button">← Regresar</button>
+        <button id="next-btn" class="btn btn-primary" type="button">Continuar →</button>
+      </footer>
+    </section>
+
+    <section id="results-screen" class="panel hidden fade-in">
+      <div class="results-logo-wrap">
+        <img class="results-logo" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/68ae10743ba618f9c7da90e0.png" alt="SuperLeads">
+      </div>
+
+      <header class="results-head card">
+        <span class="chip chip-main">Resumen ejecutivo</span>
+        <h2 id="results-title">Reporte de Rayos X para su institución</h2>
+        <p id="diagnostic-note">Tus respuestas nos permiten encontrar el cuello más probable del sistema.</p>
+        <button id="download-btn" class="btn btn-ghost results-download-btn" type="button">Preparar PDF premium</button>
+      </header>
+
+      <section class="card">
+        <h3>Embudo reconstruido</h3>
+        <p id="funnel-insight" class="funnel-insight"></p>
+        <div id="funnel-visual" class="funnel-visual"></div>
+      </section>
+
+      <section class="card">
+        <h3>Relación problema → solución</h3>
+        <div id="flow-chain" class="flow-chain"></div>
+      </section>
+
+      <section class="card">
+        <h3>Hallazgos priorizados</h3>
+        <div id="findings-grid" class="findings-grid"></div>
+      </section>
+
+      <section class="constanza-footer card">
+        <div class="constanza-profile">
+          <img class="constanza-photo" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/69c9492a9dbb4283e9ea6550.png" alt="Constanza">
+          <div class="constanza-copy">
+            <h4>Constanza</h4>
+            <p class="constanza-role">Asistente AI de SuperLeads</p>
+            <p class="constanza-note">Si quieres, te acompaño a convertir este diagnóstico en un plan de ejecución claro y accionable.</p>
+          </div>
+        </div>
+        <a
+          class="constanza-whatsapp"
+          href="https://wa.me/5218711185888?text=Hola"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Escribir por WhatsApp a Constanza"
+        >
+          <span id="constanza-whatsapp-emoji" class="constanza-whatsapp-emoji" aria-hidden="true">💬</span>
+          <span>Escribir a Constanza por WhatsApp</span>
+        </a>
+      </section>
+
+      <div class="results-logo-wrap results-logo-wrap-bottom">
+        <img class="results-logo results-logo-bottom" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/68ae10743ba618f9c7da90e0.png" alt="SuperLeads">
+        <p id="results-closing-title" class="results-closing-title">Reporte de Rayos X para su institución</p>
+      </div>
+
+      <div class="results-reset-wrap">
+        <button id="reset-btn" class="btn btn-ghost results-reset-btn" type="button">Borrar diagnóstico y volver a empezar</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
