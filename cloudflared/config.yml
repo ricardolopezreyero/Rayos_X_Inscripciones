@@ -1,0 +1,7 @@
+tunnel: cc8f8373-badb-4e96-a419-5bd6e3075620
+credentials-file: /Users/constanza/6. Claude Constanza/rayosx/cloudflared/credentials.json
+
+ingress:
+  - hostname: rayosx.superleads.mx
+    service: http://127.0.0.1:8765
+  - service: http_status:404
