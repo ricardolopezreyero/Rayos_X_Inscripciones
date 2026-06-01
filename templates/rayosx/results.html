@@ -1,0 +1,508 @@
+{% extends "rayosx/base.html" %}
+{% block title %}Diagnóstico — {{ answers.get('institution_name','Rayos X') }}{% endblock %}
+{% block body %}
+
+{# ── Calendar link — swap this URL when confirmed ── #}
+{% set CALENDAR_URL = "https://link.superleads.mx/widget/bookings/superleads_revision_diagnostico_propuesta_comercial" %}
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-shrink:0;">
+      <img class="logo-mark" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/69cde95a69eb1fa3e7917e1d.svg" alt="SuperLeads"/>
+      <span class="topbar-brand-sub" style="font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;">Rayos X Inscripciones</span>
+    </div>
+    <span class="status-pill status-pill-green" style="flex-shrink:0;">✓ Diagnóstico completado</span>
+    <span class="hide-mobile" style="font-size:10.5px;color:rgba(170,196,255,0.35);font-family:monospace;flex-shrink:0;">{{ session.short_code }}</span>
+  </div>
+
+  <div class="flex-1 px-5 py-10">
+    <div class="page-content" style="max-width:860px;margin:0 auto;">
+
+      <!-- ══ Journey steps ══════════════════════════════════ -->
+      <div style="margin-bottom:22px;">
+        <div style="display:flex;align-items:center;gap:0;position:relative;">
+
+          {% set journey = [
+            ('Diagnóstico',    True,  True),
+            ('Diseño de Solución', False, True),
+            ('Implementación', False, False),
+            ('Optimización',   False, False),
+          ] %}
+
+          {% for step_name, done, next_step in journey %}
+          {% set is_last = loop.last %}
+
+          <div style="display:flex;align-items:center;flex:{% if is_last %}0{% else %}1{% endif %};">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;">
+              <!-- Circle -->
+              <div style="
+                width:30px;height:30px;border-radius:50%;flex-shrink:0;
+                display:flex;align-items:center;justify-content:center;
+                font-size:11px;font-weight:700;
+                {% if done %}
+                  background:rgba(86,239,159,0.18);border:2px solid var(--accent);color:var(--accent);
+                {% elif next_step %}
+                  background:rgba(42,137,251,0.15);border:2px solid var(--blue);color:var(--blue);
+                {% else %}
+                  background:rgba(170,196,255,0.04);border:1.5px solid rgba(170,196,255,0.15);color:rgba(170,196,255,0.25);
+                {% endif %}
+              ">
+                {% if done %}✓{% else %}{{ loop.index }}{% endif %}
+              </div>
+              <!-- Label -->
+              <div style="font-size:10px;font-weight:{% if done or next_step %}700{% else %}400{% endif %};color:{% if done %}var(--accent){% elif next_step %}var(--blue){% else %}rgba(170,196,255,0.25){% endif %};text-align:center;white-space:nowrap;max-width:90px;line-height:1.25;">
+                {{ step_name }}
+              </div>
+              {% if done %}
+              <div style="font-size:8.5px;color:rgba(86,239,159,0.5);font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">completado</div>
+              {% elif next_step %}
+              <div style="font-size:8.5px;color:rgba(42,137,251,0.7);font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">siguiente</div>
+              {% endif %}
+            </div>
+            {% if not is_last %}
+            <!-- Connector line -->
+            <div style="flex:1;height:2px;margin:0 6px;margin-bottom:28px;background:{% if done %}linear-gradient(90deg,rgba(86,239,159,0.4),rgba(42,137,251,0.2)){% else %}rgba(170,196,255,0.07){% endif %};"></div>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+        </div>
+      </div>
+
+      <!-- ══ Institution identity ══════════════════════════ -->
+      <div class="card" style="padding:22px 28px;margin-bottom:16px;border-left:3px solid var(--blue);">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:1.65rem;font-weight:700;color:var(--text);line-height:1.15;letter-spacing:-0.02em;">
+            {{ answers.get('institution_name','Institución') }}
+          </div>
+          {% if answers.get('institution_type') or answers.get('city') %}
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+            {% if answers.get('institution_type') %}{{ answers.get('institution_type') }}{% endif %}
+            {% if answers.get('institution_type') and answers.get('city') %} &nbsp;·&nbsp; {% endif %}
+            {% if answers.get('city') %}{{ answers.get('city') }}{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          {% if answers.get('contact_name') %}
+          <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);background:rgba(42,137,251,0.07);border:1px solid rgba(42,137,251,0.18);border-radius:8px;padding:5px 12px;">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0112 0v1"/></svg>
+            <span>{{ answers.get('contact_name') }}</span>
+          </div>
+          {% endif %}
+          {% if answers.get('website_url') %}
+          <a href="{{ answers.get('website_url') }}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--cyan);background:rgba(29,178,252,0.07);border:1px solid rgba(29,178,252,0.18);border-radius:8px;padding:5px 12px;text-decoration:none;" onmouseover="this.style.borderColor='rgba(29,178,252,0.4)'" onmouseout="this.style.borderColor='rgba(29,178,252,0.18)'">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            <span>{{ answers.get('website_url')|replace('https://','') |replace('http://','') }}</span>
+          </a>
+          {% endif %}
+          {% if answers.get('contact_phone') %}
+          <a href="tel:{{ answers.get('contact_phone') }}" style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);background:rgba(170,196,255,0.05);border:1px solid rgba(170,196,255,0.14);border-radius:8px;padding:5px 12px;text-decoration:none;">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .84h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            <span>{{ answers.get('contact_phone') }}</span>
+          </a>
+          <a href="https://wa.me/{{ answers.get('contact_phone')|replace('+','')|replace(' ','')|replace('-','') }}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#25d366;background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.2);border-radius:8px;padding:5px 12px;text-decoration:none;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            <span>WhatsApp</span>
+          </a>
+          {% endif %}
+          <span style="font-size:11px;color:rgba(170,196,255,0.3);font-family:monospace;margin-left:auto;">{{ session.short_code }}</span>
+        </div>
+      </div>
+
+      <!-- ══ Hero card ══════════════════════════════════════ -->
+      <div class="card card-accent-top" style="padding:28px 32px;margin-bottom:20px;background:linear-gradient(140deg,rgba(13,40,130,0.85),rgba(8,22,80,0.8));">
+        <h1 style="font-size:1.75rem;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-0.02em;line-height:1.25;">
+          Así se ven las fugas de matrícula<br/>
+          <span style="color:var(--cyan);">en su sistema de inscripciones</span>
+        </h1>
+        <p style="color:rgba(170,196,255,0.55);font-size:12.5px;margin-bottom:24px;line-height:1.65;border-left:2px solid rgba(42,137,251,0.3);padding-left:12px;">
+          Este diagnóstico encontró dónde se están perdiendo prospectos que ya tenían intención de inscribirse.<br/>
+          No es un problema de leads. Es un problema de sistema.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+          <div class="score-card" style="background:rgba(42,137,251,0.1);border:1px solid rgba(42,137,251,0.22);">
+            <div class="score-val" style="color:var(--blue);">{{ session.completeness_score|int }}%</div>
+            <div class="score-lbl">Datos del sistema</div>
+          </div>
+          <div class="score-card" style="background:rgba(29,178,252,0.1);border:1px solid rgba(29,178,252,0.22);">
+            <div class="score-val" style="color:var(--cyan);">{{ session.certainty_score|int }}%</div>
+            <div class="score-lbl">Certeza del diagnóstico</div>
+          </div>
+          {% if metrics.get('opportunity_value') %}
+          {% set opp_year = metrics.get('opportunity_value')|int %}
+          {% set opp_month = (opp_year / 12)|int %}
+          <div class="score-card" style="background:rgba(86,239,159,0.08);border:1px solid rgba(86,239,159,0.22);">
+            <div class="score-val" style="color:var(--accent);font-size:1.7rem;">${{ '{:,.0f}'.format(opp_year) }}</div>
+            <div style="font-size:10px;color:rgba(86,239,159,0.55);font-weight:600;margin-bottom:2px;">/año &nbsp;·&nbsp; ${{ '{:,.0f}'.format(opp_month) }}/mes</div>
+            <div class="score-lbl">Ingresos que el sistema dejó pasar</div>
+          </div>
+          {% endif %}
+          {% if metrics.get('gap_to_target') and metrics.get('gap_to_target') > 0 %}
+          <div class="score-card" style="background:rgba(255,107,107,0.07);border:1px solid rgba(255,107,107,0.2);">
+            <div class="score-val" style="color:#ff8f8f;font-size:1.7rem;">{{ metrics.get('gap_to_target')|int }}</div>
+            <div class="score-lbl">Alumnos que podrían estar en sus salones</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- ══ Funnel visual ══════════════════════════════════ -->
+      {% set fstages = [('Leads','leads','#2a89fb'),('Contactados','contacted','#1db2fc'),('Citas','appointments','#56ef9f'),('Asistentes','attended','#56ef9f'),('Inscritos','enrolled','#56ef9f')] %}
+      {% set max_v = namespace(v=1) %}
+      {% for lbl,key,clr in fstages %}{% if metrics.get(key) and metrics.get(key)|int > max_v.v %}{% set max_v.v = metrics.get(key)|int %}{% endif %}{% endfor %}
+
+      {# ── Pre-calculate biggest bottleneck (largest absolute drop) ── #}
+      {% set bneck = namespace(idx=-1, drop=0) %}
+      {% for i in range(fstages|length - 1) %}
+        {% set _v1 = metrics.get(fstages[i][1]) %}
+        {% set _v2 = metrics.get(fstages[i+1][1]) %}
+        {% if _v1 is not none and _v2 is not none %}
+          {% set _drop = _v1|int - _v2|int %}
+          {% if _drop > bneck.drop %}{% set bneck.idx = i %}{% set bneck.drop = _drop %}{% endif %}
+        {% endif %}
+      {% endfor %}
+
+      {% if metrics.get('leads') or metrics.get('enrolled') %}
+      <div class="card" style="padding:24px 28px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-weight:700;color:var(--text);font-size:15px;">Dónde se van los prospectos</div>
+            <a href="{{ prefix }}/paso/2/{{ session.id }}" style="font-size:11px;color:var(--blue);text-decoration:none;font-weight:600;border:1px solid rgba(42,137,251,0.3);border-radius:6px;padding:2px 10px;opacity:0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">Editar</a>
+          </div>
+          {% if metrics.get('leads') and metrics.get('enrolled') %}
+          <div style="font-size:12px;color:rgba(170,196,255,0.45);">
+            De cada 100, <strong style="color:var(--text);">{{ ((metrics.get('enrolled') / metrics.get('leads')) * 100)|round(0)|int }} terminan inscritos</strong>
+          </div>
+          {% endif %}
+        </div>
+        <p style="font-size:12px;color:rgba(170,196,255,0.4);margin-bottom:18px;">Cada etapa con conversión baja es una fuga silenciosa — prospectos que sí tenían interés, pero el sistema los dejó ir.</p>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          {% for lbl,key,clr in fstages %}
+          {% set val = metrics.get(key) %}
+          {% if val is not none %}
+          {% set pct = [((val / max_v.v) * 100)|int, 4]|max %}
+          {% set li = loop.index0 %}
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:108px;font-size:12px;color:var(--muted);text-align:right;flex-shrink:0;">{{ lbl }}</div>
+            <div class="funnel-bar-wrap" style="position:relative;">
+              <div class="funnel-bar-fill" style="width:{{ pct }}%;background:linear-gradient(90deg,{{ clr }}99,{{ clr }});">
+                {{ '{:,}'.format(val|int) }}
+              </div>
+              {% if li == bneck.idx %}
+              <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:9.5px;font-weight:700;color:#ff8f8f;background:rgba(15,4,4,0.88);border:1px solid rgba(255,107,107,0.4);border-radius:6px;padding:2px 9px;white-space:nowrap;pointer-events:none;animation:pulse-red 2s infinite;">⚠ Mayor cuello</div>
+              {% endif %}
+            </div>
+            {% if li < (fstages|length - 1) %}
+              {% set nk = fstages[li+1][1] %}
+              {% set nv = metrics.get(nk) %}
+              {% if nv is not none and val > 0 %}
+                {% set r = (nv / val * 100)|int %}
+                <div style="width:44px;font-size:11.5px;font-weight:700;text-align:center;flex-shrink:0;" class="{% if r >= 60 %}conv-good{% elif r >= 35 %}conv-warn{% else %}conv-danger{% endif %}">{{ r }}%</div>
+              {% else %}
+                <div style="width:44px;"></div>
+              {% endif %}
+            {% else %}
+              <div style="width:44px;"></div>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(42,137,251,0.12);display:flex;flex-wrap:wrap;gap:16px;">
+          {% if metrics.get('enroll_rate') %}
+          <span style="font-size:12px;color:var(--muted);">Conversión total: <strong style="color:var(--text);">{{ (metrics.get('enroll_rate')*100)|round(0)|int }}%</strong></span>
+          {% endif %}
+          {% if metrics.get('gap_to_target') %}
+          <span style="font-size:12px;color:var(--muted);">Brecha a meta: <strong style="color:#ff8f8f;">{{ metrics.get('gap_to_target')|int }} alumnos</strong></span>
+          {% endif %}
+          {% if metrics.get('opportunity_value') %}
+          {% set ov = metrics.get('opportunity_value')|int %}
+          <span style="font-size:12px;color:var(--muted);">Valor no capturado: <strong style="color:var(--accent)">${{ '{:,.0f}'.format(ov) }}/año</strong> <span style="color:rgba(86,239,159,0.5);font-weight:600;">· ${{ '{:,.0f}'.format((ov/12)|int) }}/mes</span></span>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ══ Comparison flow chart ══════════════════════════ -->
+      {# Conservative benchmarks — 20% margin built in #}
+      {% if metrics.get('leads') and metrics.get('enrolled') %}
+      {% set sl = metrics.get('leads')|int %}
+      {% set se = metrics.get('enrolled')|int %}
+      {% set sc_raw = metrics.get('contacted') %}
+      {% set sa_raw = metrics.get('appointments') %}
+      {% set st_raw = metrics.get('attended') %}
+      {% set sc = sc_raw|int if sc_raw else (sl * 0.45)|int %}
+      {% set sa = sa_raw|int if sa_raw else (sc * 0.35)|int %}
+      {% set st = st_raw|int if st_raw else (sa * 0.70)|int %}
+
+      {# Projected: 20% conservative margin applied to each benchmark #}
+      {% set pc = (sl * 0.65)|int %}
+      {% set pa = (pc * 0.45)|int %}
+      {% set pt = (pa * 0.68)|int %}
+      {% set pe = (pt * 0.55)|int %}
+      {% set gain = pe - se %}
+
+      {% set cr1 = ((sc / sl) * 100)|round(0)|int if sl > 0 else 0 %}
+      {% set cr2 = ((sa / sc) * 100)|round(0)|int if sc > 0 else 0 %}
+      {% set cr3 = ((st / sa) * 100)|round(0)|int if sa > 0 else 0 %}
+      {% set cr4 = ((se / st) * 100)|round(0)|int if st > 0 else 0 %}
+      {% set col1 = 'var(--accent)' if cr1 >= 60 else ('#ffd93d' if cr1 >= 35 else '#ff8f8f') %}
+      {% set col2 = 'var(--accent)' if cr2 >= 50 else ('#ffd93d' if cr2 >= 25 else '#ff8f8f') %}
+      {% set col3 = 'var(--accent)' if cr3 >= 70 else ('#ffd93d' if cr3 >= 45 else '#ff8f8f') %}
+      {% set col4 = 'var(--accent)' if cr4 >= 60 else ('#ffd93d' if cr4 >= 35 else '#ff8f8f') %}
+
+      <div class="card" style="padding:24px 28px;margin-bottom:20px;">
+        <div style="font-weight:700;color:var(--text);font-size:15px;margin-bottom:4px;">Lo que cambia con el sistema correcto</div>
+        <p style="font-size:12px;color:rgba(170,196,255,0.4);margin-bottom:22px;">Los mismos <strong style="color:var(--text);">{{ '{:,}'.format(sl) }} leads</strong> — diferente destino para cada prospecto</p>
+
+        <div style="display:grid;grid-template-columns:1fr 50px 1fr;gap:0;align-items:start;">
+          <div>
+            <div class="flow-col-header flow-col-bad">Sin sistema</div>
+            <div class="flow-stage flow-stage-neutral"><div class="flow-stage-label">Leads</div><div class="flow-stage-val">{{ '{:,}'.format(sl) }}</div></div>
+            <div class="flow-conv" style="color:{{ col1 }};">↓ {{ cr1 }}%</div>
+            <div class="flow-stage flow-stage-neutral"><div class="flow-stage-label">Contactados</div><div class="flow-stage-val">{{ '{:,}'.format(sc) }}</div></div>
+            <div class="flow-conv" style="color:{{ col2 }};">↓ {{ cr2 }}%</div>
+            <div class="flow-stage flow-stage-neutral"><div class="flow-stage-label">Citas</div><div class="flow-stage-val">{{ '{:,}'.format(sa) }}</div></div>
+            <div class="flow-conv" style="color:{{ col3 }};">↓ {{ cr3 }}%</div>
+            <div class="flow-stage flow-stage-neutral"><div class="flow-stage-label">Asistentes</div><div class="flow-stage-val">{{ '{:,}'.format(st) }}</div></div>
+            <div class="flow-conv" style="color:{{ col4 }};">↓ {{ cr4 }}%</div>
+            <div class="flow-stage flow-stage-bad"><div class="flow-stage-label" style="color:rgba(255,143,143,0.7);">Inscritos</div><div class="flow-stage-val" style="color:#ff8f8f;font-size:1.8rem;">{{ '{:,}'.format(se) }}</div></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;padding-top:42px;gap:0;">
+            <div style="flex:1;width:1px;background:linear-gradient(to bottom,transparent,rgba(86,239,159,0.25));min-height:60px;"></div>
+            <div style="font-size:1.4rem;color:var(--accent);line-height:1;margin:8px 0;">→</div>
+            <div style="font-size:8px;font-weight:700;color:var(--accent);text-align:center;line-height:1.4;letter-spacing:0.04em;text-transform:uppercase;">Super<br/>Leads</div>
+            <div style="flex:1;width:1px;background:linear-gradient(to bottom,rgba(86,239,159,0.25),transparent);min-height:60px;"></div>
+          </div>
+
+          <div>
+            <div class="flow-col-header flow-col-good">Con SuperLeads</div>
+            <div class="flow-stage flow-stage-neutral"><div class="flow-stage-label">Leads</div><div class="flow-stage-val">{{ '{:,}'.format(sl) }}</div></div>
+            <div class="flow-conv" style="color:var(--accent);">↓ 65%</div>
+            <div class="flow-stage flow-stage-good"><div class="flow-stage-label">Contactados</div><div class="flow-stage-val" style="color:var(--accent);">{{ '{:,}'.format(pc) }}</div></div>
+            <div class="flow-conv" style="color:var(--accent);">↓ 45%</div>
+            <div class="flow-stage flow-stage-good"><div class="flow-stage-label">Citas</div><div class="flow-stage-val" style="color:var(--accent);">{{ '{:,}'.format(pa) }}</div></div>
+            <div class="flow-conv" style="color:var(--accent);">↓ 68%</div>
+            <div class="flow-stage flow-stage-good"><div class="flow-stage-label">Asistentes</div><div class="flow-stage-val" style="color:var(--accent);">{{ '{:,}'.format(pt) }}</div></div>
+            <div class="flow-conv" style="color:var(--accent);">↓ 55%</div>
+            <div class="flow-stage flow-stage-best"><div class="flow-stage-label" style="color:rgba(86,239,159,0.7);">Inscritos</div><div class="flow-stage-val" style="color:var(--accent);font-size:1.8rem;">{{ '{:,}'.format(pe) }}</div></div>
+          </div>
+        </div>
+
+        {% if gain > 0 %}
+        <div style="margin-top:20px;padding:14px 20px;background:rgba(86,239,159,0.06);border:1px solid rgba(86,239,159,0.22);border-radius:10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;">
+          <span style="font-size:13px;color:var(--muted);">Proyección conservadora:</span>
+          <span style="font-size:1.5rem;font-weight:700;color:var(--accent);">+{{ '{:,}'.format(gain) }} alumnos por ciclo</span>
+          {% set ticket_str = answers.get('average_ticket','') %}
+          {% if ticket_str and ticket_str not in ('','no_se') %}
+            {% set ticket_val = ticket_str|int %}
+            {% if ticket_val > 0 %}
+            {% set gain_year = gain * ticket_val %}
+            {% set gain_month = (gain_year / 12)|int %}
+            <span style="color:rgba(170,196,255,0.4);">·</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+              <span style="font-size:1.1rem;font-weight:600;color:var(--accent);">+${{ '{:,}'.format(gain_year) }}/año</span>
+              <span style="font-size:11px;color:rgba(86,239,159,0.55);font-weight:600;">+${{ '{:,}'.format(gain_month) }}/mes</span>
+            </div>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% endif %}
+        <p style="font-size:10.5px;color:rgba(170,196,255,0.25);margin-top:10px;text-align:right;line-height:1.5;">
+          * Proyección conservadora con margen de mejora incorporado. Benchmarks: contactación 65%, citas 45%, asistencia 68%, cierre 55%.
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- ══ Findings + Solutions (always visible) ══════════ -->
+      {% if findings %}
+      <div style="margin-bottom:18px;">
+        <div style="font-weight:700;color:var(--text);font-size:15px;margin-bottom:6px;">
+          {{ findings|length }} fuga{% if findings|length != 1 %}s{% endif %} silenciosa{% if findings|length != 1 %}s{% endif %} detectada{% if findings|length != 1 %}s{% endif %}
+        </div>
+        <p style="font-size:13px;color:rgba(170,196,255,0.5);line-height:1.6;max-width:620px;">
+          Cada fuga tiene un origen claro y una solución específica. Las soluciones de SuperLeads están diseñadas para este sistema en particular.
+        </p>
+      </div>
+
+      {% for f in findings %}
+      <div class="finding-card severity-{{ f.severity_label|lower }}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="font-size:1.5rem;font-weight:900;color:rgba(170,196,255,0.12);line-height:1;">#{{ loop.index }}</span>
+              <h3 style="font-size:1.05rem;font-weight:700;color:var(--text);line-height:1.3;">{{ f.title }}</h3>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span class="badge badge-{{ f.severity_label|lower }}">Severidad {{ f.severity_label }}</span>
+              <span class="badge badge-{{ 'alta' if f.confidence_score >= 65 else 'prelim' }}">Certeza {{ f.confidence_label }}</span>
+              <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;padding:0 2px;">{{ f.funnel_zone }}</span>
+            </div>
+          </div>
+          <div style="text-align:center;flex-shrink:0;">
+            <div style="font-size:2rem;font-weight:700;line-height:1;color:{% if f.severity_label == 'Alta' %}var(--accent){% else %}var(--cyan){% endif %};">{{ f.severity_score|int }}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px;">impacto</div>
+          </div>
+        </div>
+        <hr class="divider" style="margin-bottom:14px;"/>
+        <p style="font-size:14px;color:var(--text);margin-bottom:8px;line-height:1.65;font-weight:500;">{{ f.summary }}</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">{{ f.rationale }}</p>
+        {% if f.evidence %}
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+          {% for ev in f.evidence %}<span class="ev-chip">{{ ev }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12px;padding-top:2px;margin-bottom:{% if f.solutions %}14px{% else %}0{% endif %};">
+          {% if f.estimated_impact %}<span style="color:var(--accent);">💰 {{ f.estimated_impact }}</span>{% endif %}
+          {% if f.missing_data %}<span style="color:rgba(170,196,255,0.45);">📋 Para afinarlo más: {{ f.missing_data }}</span>{% endif %}
+        </div>
+
+        <!-- Solutions — always visible -->
+        {% if f.solutions %}
+        <div style="margin-top:4px;padding-top:16px;border-top:1px solid rgba(42,137,251,0.18);">
+          <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;">Cómo lo resuelve SuperLeads</div>
+          {% for sol in f.solutions %}
+          <div class="solution-item">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:5px;">
+              <span style="font-weight:700;font-size:13.5px;color:var(--text);">{{ sol.name }}</span>
+              <span style="font-size:10px;background:rgba(86,239,159,0.1);color:var(--accent);border:1px solid rgba(86,239,159,0.25);border-radius:10px;padding:2px 10px;white-space:nowrap;font-weight:700;flex-shrink:0;">
+                {% if sol.role=='primary' %}Principal{% elif sol.role=='complementary' %}Complementaria{% elif sol.role=='prerequisite' %}Precondición{% else %}{{ sol.role }}{% endif %}
+              </span>
+            </div>
+            <p style="font-size:12.5px;color:var(--muted);line-height:1.55;">{{ sol.public_message }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {% else %}
+      <div class="card" style="padding:36px;text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:14px;opacity:0.4;">◎</div>
+        <p style="color:var(--muted);margin-bottom:16px;">Se necesitan más datos para localizar las fugas con precisión.<br/>Completa al menos leads e inscritos en el embudo.</p>
+        <a href="{{ prefix }}/paso/2/{{ session.id }}" class="btn-ghost" style="font-size:13px;">Completar embudo →</a>
+      </div>
+      {% endif %}
+
+      <!-- ══ Dirección Estratégica — siempre recomendada ══ -->
+      <div style="border:1.5px solid rgba(86,239,159,0.35);border-radius:14px;padding:26px 30px;margin-bottom:20px;background:linear-gradient(140deg,rgba(6,26,10,0.9),rgba(8,22,80,0.65));">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-size:9.5px;font-weight:700;color:var(--accent);background:rgba(86,239,159,0.12);border:1px solid rgba(86,239,159,0.28);border-radius:20px;padding:3px 12px;letter-spacing:0.1em;text-transform:uppercase;">Recomendación estratégica</div>
+        </div>
+        <h3 style="font-size:1.15rem;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-0.01em;">Dirección Estratégica SuperLeads</h3>
+        <p style="font-size:13.5px;color:var(--muted);line-height:1.75;margin-bottom:14px;">
+          Las fugas detectadas no se cierran con una herramienta — se cierran con
+          <strong style="color:var(--text);">alguien que dirija el sistema completo de inscripciones</strong>,
+          sepa qué medir, qué corregir y en qué orden.
+        </p>
+        <p style="font-size:13.5px;color:var(--muted);line-height:1.75;">
+          La diferencia entre instituciones que crecen y las que se estancan no está en tener más leads.
+          Está en tener una dirección que convierta cada prospecto en una decisión, y cada decisión en un inscrito.
+          <strong style="color:var(--text);">Eso es lo que hace la Dirección Estratégica.</strong>
+        </p>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(86,239,159,0.15);display:flex;flex-wrap:wrap;gap:18px;">
+          {% for bullet in ['Sistema de inscripciones completo — no piezas sueltas','Métricas reales en cada etapa del embudo','Decisiones basadas en datos, no en intuición','Tu equipo de admisiones con dirección clara'] %}
+          <div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:rgba(170,196,255,0.7);">
+            <span style="color:var(--accent);font-size:10px;">●</span> {{ bullet }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ══ Asesor SuperLeads ═══════════════════════════════ -->
+      {% if answers.get('operator_name') %}
+      <div style="display:flex;align-items:center;gap:16px;padding:18px 22px;margin-bottom:16px;border-radius:12px;background:rgba(11,31,105,0.5);border:1px solid rgba(42,137,251,0.18);">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,rgba(42,137,251,0.3),rgba(86,239,159,0.15));border:2px solid rgba(42,137,251,0.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;font-weight:700;color:var(--blue);">
+          {{ answers.get('operator_name')[0]|upper }}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px;">Asesor SuperLeads</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">{{ answers.get('operator_name') }}</div>
+        </div>
+        <div style="font-size:11px;color:rgba(170,196,255,0.35);text-align:right;line-height:1.5;">
+          Acompañó este<br/>diagnóstico
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ══ Next step — Diseño de Solución ════════════════ -->
+      <div style="background:linear-gradient(140deg,rgba(13,40,130,0.9),rgba(8,22,80,0.85));border:1px solid rgba(86,239,159,0.25);border-radius:14px;padding:28px 30px;margin-top:8px;">
+
+        <!-- Journey reminder -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+          <span style="font-size:10px;background:rgba(86,239,159,0.12);color:var(--accent);border:1px solid rgba(86,239,159,0.3);border-radius:20px;padding:3px 12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">✓ Diagnóstico listo</span>
+          <span style="font-size:13px;color:rgba(170,196,255,0.4);">→</span>
+          <span style="font-size:10px;background:rgba(42,137,251,0.12);color:var(--blue);border:1px solid rgba(42,137,251,0.3);border-radius:20px;padding:3px 12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Siguiente: Diseño de Solución</span>
+        </div>
+
+        <h3 style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:8px;">Agendemos el Diseño de Solución</h3>
+        <p style="color:var(--muted);font-size:13.5px;line-height:1.7;margin-bottom:22px;">
+          En la siguiente sesión tomamos exactamente lo que el diagnóstico reveló para
+          <strong style="color:var(--text);">diseñar juntos el sistema específico de {{ answers.get('institution_name','su institución') }}</strong>
+          — no una propuesta genérica, el sistema que resuelve estas fugas en particular.
+        </p>
+
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          <a href="{{ CALENDAR_URL }}" target="_blank" class="btn-primary" style="text-decoration:none;font-size:14px;padding:13px 28px;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Agendar Diseño de Solución
+          </a>
+          {% if has_pdf_client %}
+          <a href="{{ prefix }}/pdf/cliente/{{ session.id }}" class="btn-ghost" style="text-decoration:none;font-size:13px;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Descargar diagnóstico
+          </a>
+          {% endif %}
+          {% if has_pdf_internal %}
+          <a href="{{ prefix }}/pdf/interno/{{ session.id }}" class="btn-ghost" style="text-decoration:none;font-size:13px;opacity:0.6;">
+            Reporte interno
+          </a>
+          {% endif %}
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.flow-col-header { text-align:center;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;padding:6px 10px;border-radius:7px; }
+.flow-col-bad  { color:#ff8f8f;background:rgba(255,107,107,0.07);border:1px solid rgba(255,107,107,0.18); }
+.flow-col-good { color:var(--accent);background:rgba(86,239,159,0.06);border:1px solid rgba(86,239,159,0.2); }
+.flow-stage { text-align:center;padding:10px 8px 9px;border-radius:9px;margin-bottom:3px; }
+.flow-stage-neutral { background:rgba(170,196,255,0.04);border:1px solid rgba(170,196,255,0.1); }
+.flow-stage-good    { background:rgba(86,239,159,0.05);border:1px solid rgba(86,239,159,0.18); }
+.flow-stage-bad     { background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.22); }
+.flow-stage-best    { background:rgba(86,239,159,0.1);border:2px solid rgba(86,239,159,0.38); }
+.flow-stage-label { font-size:10px;color:var(--muted);margin-bottom:3px; }
+.flow-stage-val   { font-size:1.4rem;font-weight:700;color:var(--text);line-height:1.1; }
+.flow-conv { text-align:center;font-size:11.5px;font-weight:700;padding:4px 0;letter-spacing:0.02em; }
+@keyframes pulse-red {
+  0%,100% { box-shadow:0 0 0 0 rgba(255,107,107,0); }
+  50%      { box-shadow:0 0 0 4px rgba(255,107,107,0.2); }
+}
+</style>
+
+{% if has_pdf_client %}
+<script>
+// Auto-descarga del PDF al cargar la página de resultados
+window.addEventListener('load', function () {
+  setTimeout(function () {
+    const a = document.createElement('a');
+    a.href = '{{ prefix }}/pdf/cliente/{{ session.id }}';
+    a.setAttribute('download', '');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, 900);
+});
+</script>
+{% endif %}
+
+{% endblock %}
