@@ -1,0 +1,72 @@
+thresholds:
+  slow_first_response_minutes: 60
+  critical_first_response_minutes: 360
+  high_parallel_systems: 4
+  low_contact_rate: 0.45
+  low_appointment_rate_on_leads: 0.12
+  low_attendance_rate: 0.65
+  low_close_rate_on_attended: 0.22
+  low_lead_sufficiency_ratio: 1.0
+
+score_weights:
+  severity:
+    symptom_intensity: 0.35
+    money_proximity: 0.25
+    estimated_impact: 0.25
+    breadth_of_damage: 0.15
+  confidence:
+    evidence_coverage: 0.30
+    evidence_quality: 0.25
+    internal_consistency: 0.25
+    numerator_denominator_validity: 0.20
+  priority:
+    severity: 0.35
+    money_proximity: 0.25
+    confidence: 0.20
+    actionability: 0.20
+
+confidence_weights:
+  exact: 1.0
+  approximate: 0.72
+  unknown: 0.0
+
+severity_logic:
+  preliminary_penalty: 0.18
+  structural_finding_cap: 0.78
+
+institution_specific_overrides:
+  K12:
+    referral_strength_weight: 1.2
+    safety_objection_weight: 1.15
+  Prepa:
+    scholarship_friction_weight: 1.15
+    teen_value_prop_weight: 1.10
+  Universidad:
+    employability_weight: 1.20
+    routing_by_program_weight: 1.10
+
+public_messages:
+  no_benchmark: "Sin benchmark externo cargado; diagnóstico basado en estructura y comportamiento del embudo."
+
+internal_messages:
+  reveal_confirmation: "Normalmente esta parte se revisa en la siguiente conversación. ¿Deseas verla ahora?"
+
+solution_mapping_by_root_cause:
+  slow_response:
+    primary: ia_conversacional
+    prerequisite: crm_superleads
+  fragmented_channels:
+    primary: crm_superleads
+    complementary: optimizacion_puntos_contacto
+  weak_closing:
+    primary: taller_inscripcion_ventas
+    complementary: seguimiento_comercial
+  low_volume:
+    primary: campanas_generacion_demanda
+    prerequisite: crm_superleads
+  low_conversion:
+    primary: direccion_estrategica
+    prerequisite: crm_superleads
+  no_digital_structure:
+    primary: crm_superleads
+    complementary: optimizacion_puntos_contacto
