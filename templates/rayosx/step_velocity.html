@@ -1,0 +1,180 @@
+{% extends "rayosx/_step_shell.html" %}
+{% block step_content %}
+
+<div class="section-label">Paso 3 de 5</div>
+<h2 style="font-size:1.65rem; font-weight:700; color:var(--text); margin-bottom:8px; letter-spacing:-0.01em;">Velocidad y contactación</h2>
+<p style="color:var(--muted); font-size:14px; margin-bottom:28px; line-height:1.6;">En admisiones, <strong style="color:var(--text);">velocidad = citas</strong>. Vamos a ubicar el punto donde se enfría el prospecto.</p>
+
+<form method="POST" action="/paso/3/{{ session_id }}">
+
+  <div style="margin-bottom:22px;">
+    <label class="field-label">¿Cuánto tarda el primer contacto con un lead nuevo?</label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for val, label in [('menos_5','< 5 min'),('5_15','5–15 min'),('15_60','15–60 min'),('1_3h','1–3 horas'),('mas_3h','Más de 3h'),('no_medimos','No lo medimos')] %}
+      <label class="chip {% if answers.get('first_contact_delay_bucket')==val %}selected{% endif %}">
+        <input type="radio" name="first_contact_delay_bucket" value="{{ val }}" {% if answers.get('first_contact_delay_bucket')==val %}checked{% endif %}/>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+    <div id="delay-insight" class="insight-box" style="margin-top:10px; display:none;">
+      ⚡ Los estudios de admisiones muestran que responder en más de 60 minutos reduce la probabilidad de cita en más del 40%. Este es un cuello frecuente.
+    </div>
+  </div>
+
+  <div style="margin-bottom:22px;">
+    <label class="field-label">¿En qué horario se atienden los leads?</label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for val, label in [('horario_oficina','Solo horario oficina'),('horario_ampliado','Hasta las 8pm'),('fines_semana','Incluye fines de semana'),('24_7','24/7')] %}
+      <label class="chip {% if answers.get('lead_attention_schedule')==val %}selected{% endif %}">
+        <input type="radio" name="lead_attention_schedule" value="{{ val }}" {% if answers.get('lead_attention_schedule')==val %}checked{% endif %}/>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:22px;">
+    <div>
+      <label class="field-label">Cobertura fuera de horario</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, cubierta'),('parcial','Parcialmente'),('no','Sin cobertura')] %}
+        <label class="chip {% if answers.get('after_hours_coverage')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+          <input type="radio" name="after_hours_coverage" value="{{ val }}" {% if answers.get('after_hours_coverage')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="field-label">¿Usan IA conversacional o chatbot?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí'),('parcial','En proceso'),('no','No')] %}
+        <label class="chip {% if answers.get('uses_conversational_ai')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+          <input type="radio" name="uses_conversational_ai" value="{{ val }}" {% if answers.get('uses_conversational_ai')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:22px;">
+    <div>
+      <label class="field-label">¿Las conversaciones están centralizadas?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, en un sistema'),('parcial','Parcialmente'),('no','Cada asesor las suyas')] %}
+        <label class="chip {% if answers.get('conversations_centralized')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+          <input type="radio" name="conversations_centralized" value="{{ val }}" {% if answers.get('conversations_centralized')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="field-label">¿Miden tiempos de respuesta?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí'),('no','No'),('no_se','No sabemos')] %}
+        <label class="chip {% if answers.get('measures_response_times')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+          <input type="radio" name="measures_response_times" value="{{ val }}" {% if answers.get('measures_response_times')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Proceso -->
+  <div class="form-group" style="margin-bottom:26px;">
+    <div class="section-label" style="margin-bottom:14px;">Complejidad del proceso</div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:18px;">
+
+      <div>
+        <label class="field-label" style="margin-bottom:8px;">Pasos para inscribirse</label>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          {% for val, label in [('1_2','1–2 pasos'),('3_4','3–4 pasos'),('5_6','5–6 pasos'),('7_mas','7 o más')] %}
+          <label class="chip {% if answers.get('admission_steps_count')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+            <input type="radio" name="admission_steps_count" value="{{ val }}" {% if answers.get('admission_steps_count')==val %}checked{% endif %}/>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label" style="margin-bottom:8px;">Documentos requeridos</label>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          {% for val, label in [('0_2','0–2 documentos'),('3_5','3–5 documentos'),('6_8','6–8 documentos'),('9_mas','9 o más')] %}
+          <label class="chip {% if answers.get('required_documents_count')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+            <input type="radio" name="required_documents_count" value="{{ val }}" {% if answers.get('required_documents_count')==val %}checked{% endif %}/>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label" style="margin-bottom:8px;">Tiempo primer contacto → decisión</label>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          {% for val, label in [('1_3d','1–3 días'),('1_semana','Aprox. 1 semana'),('2_semanas','2 semanas'),('mas_mes','Más de un mes'),('no_se','No lo sabemos')] %}
+          <label class="chip {% if answers.get('days_first_contact_to_resolution')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+            <input type="radio" name="days_first_contact_to_resolution" value="{{ val }}" {% if answers.get('days_first_contact_to_resolution')==val %}checked{% endif %}/>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label" style="margin-bottom:8px;">Sistemas paralelos (Excel, WhatsApp…)</label>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          {% for val, label in [('0','Ninguno — todo centralizado'),('1','1 sistema extra'),('2_3','2–3 sistemas distintos'),('4_mas','4 o más — caos total')] %}
+          <label class="chip {% if answers.get('parallel_systems_count')==val %}selected{% endif %}" style="border-radius:9px; justify-content:flex-start;">
+            <input type="radio" name="parallel_systems_count" value="{{ val }}" {% if answers.get('parallel_systems_count')==val %}checked{% endif %}/>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Capacidades digitales -->
+    <label class="field-label" style="margin-bottom:8px;">¿Qué tienen habilitado hoy?</label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for name, label in [('easy_scheduling','Fácil agendar cita'),('can_advance_online','Avance en línea'),('can_pay_online','Pago en línea'),('automated_followup','Seguimiento automático')] %}
+      <label class="chip {% if answers.get(name)=='si' %}selected{% endif %}">
+        <input type="checkbox" name="{{ name }}" value="si" {% if answers.get(name)=='si' %}checked{% endif %}/>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <a href="/paso/2/{{ session_id }}" class="btn-ghost">← Anterior</a>
+    <button type="submit" class="btn-primary">
+      Continuar a canales
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</form>
+
+<script>
+const slowBuckets = ['1_3h','mas_3h','no_medimos'];
+document.querySelectorAll('[name="first_contact_delay_bucket"]').forEach(r => {
+  r.addEventListener('change', () => {
+    document.getElementById('delay-insight').style.display = slowBuckets.includes(r.value) ? 'block' : 'none';
+  });
+});
+document.querySelectorAll('.chip').forEach(chip => {
+  const inp = chip.querySelector('input');
+  if (!inp) return;
+  chip.addEventListener('click', () => {
+    if (inp.type === 'radio') document.querySelectorAll(`[name="${inp.name}"]`).forEach(i => i.closest('.chip')?.classList.remove('selected'));
+    chip.classList.toggle('selected', inp.type === 'checkbox' ? inp.checked : true);
+  });
+});
+</script>
+{% endblock %}
