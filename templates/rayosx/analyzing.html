@@ -1,0 +1,109 @@
+{% extends "rayosx/base.html" %}
+{% block title %}Analizando — Rayos X Inscripciones{% endblock %}
+{% block body %}
+<div class="min-h-screen flex flex-col items-center justify-center px-6" style="text-align:center;">
+
+  <!-- Animated logo -->
+  <div style="position:relative; margin-bottom:36px;">
+    <div style="width:72px;height:72px;background:rgba(5,16,58,0.8);border-radius:18px;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;padding:10px;">
+      <img src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/69cde95a69eb1fa3e7917e1d.svg" alt="SuperLeads" style="width:100%;height:auto;"/>
+    </div>
+    <div style="position:absolute;inset:-8px;border-radius:24px;border:1px solid rgba(86,239,159,0.3);animation:ring-pulse 2s ease-in-out infinite;"></div>
+    <div style="position:absolute;inset:-16px;border-radius:30px;border:1px solid rgba(42,137,251,0.15);animation:ring-pulse 2s ease-in-out 0.4s infinite;"></div>
+  </div>
+
+  <div class="section-label" style="margin-bottom:10px;">Motor de diagnóstico</div>
+  <h2 style="font-size:1.75rem; font-weight:700; color:var(--text); margin-bottom:10px; letter-spacing:-0.02em;">Analizando tu sistema de inscripciones</h2>
+  <p style="color:var(--muted); font-size:14px; margin-bottom:52px; max-width:420px; line-height:1.65;">Vamos a ubicar el punto exacto donde se está rompiendo el crecimiento.</p>
+
+  <!-- Step sequence -->
+  <div id="steps-container" style="width:100%;max-width:440px;margin-bottom:44px; text-align:left;">
+    {% set messages = [
+      ('Reconstruyendo embudo de inscripciones…','◎'),
+      ('Leyendo señales de Atracción…','◈'),
+      ('Buscando fugas en Admisión…','⬡'),
+      ('Validando fricción en el proceso…','◇'),
+      ('Detectando origen del cuello principal…','◉'),
+      ('Calculando severidad y certeza…','⊕'),
+      ('Preparando reporte ejecutivo…','✦'),
+    ] %}
+    {% for msg, icon in messages %}
+    <div class="analysis-step" data-step="{{ loop.index0 }}" style="display:flex;align-items:center;gap:14px;padding:11px 16px;border-radius:10px;margin-bottom:6px;opacity:0.18;transition:all 0.5s cubic-bezier(0.22,1,0.36,1);">
+      <div class="step-icon" style="width:34px;height:34px;border-radius:50%;background:rgba(42,137,251,0.1);border:1px solid rgba(42,137,251,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--blue);flex-shrink:0;transition:all 0.4s;">{{ icon }}</div>
+      <span style="font-size:13.5px;color:var(--muted);flex:1;">{{ msg }}</span>
+      <div class="step-check" style="display:none;color:var(--accent);font-size:15px;font-weight:700;">✓</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Progress -->
+  <div style="width:100%;max-width:440px;margin-bottom:12px;">
+    <div class="progress-bar-track" style="height:4px;">
+      <div id="analysis-bar" class="progress-bar-fill" style="width:0%;"></div>
+    </div>
+  </div>
+  <p id="progress-label" style="font-size:12px;color:rgba(170,196,255,0.4);">Iniciando análisis…</p>
+
+</div>
+
+<style>
+@keyframes ring-pulse {
+  0%,100% { opacity:0.6; transform:scale(1); }
+  50%      { opacity:0.2; transform:scale(1.06); }
+}
+.analysis-step.active {
+  opacity: 1 !important;
+  background: rgba(11,31,105,0.55);
+  border: 1px solid rgba(42,137,251,0.25);
+}
+.analysis-step.done { opacity: 0.55 !important; }
+.analysis-step.done .step-icon {
+  background: rgba(86,239,159,0.12);
+  border-color: rgba(86,239,159,0.35);
+  color: var(--accent);
+}
+.analysis-step.done .step-check { display:block !important; }
+</style>
+
+<script>
+const SESSION_ID = "{{ session_id }}";
+const PREFIX     = "{{ prefix }}";
+const steps  = document.querySelectorAll('.analysis-step');
+const bar    = document.getElementById('analysis-bar');
+const label  = document.getElementById('progress-label');
+const total  = steps.length;
+
+function activate(i) {
+  if (i > 0) { steps[i-1].classList.remove('active'); steps[i-1].classList.add('done'); }
+  if (i < total) {
+    steps[i].classList.add('active');
+    bar.style.width = Math.round(((i+1)/(total+1))*88) + '%';
+    label.textContent = steps[i].querySelector('span').textContent;
+  }
+}
+
+function runSequence(cb) {
+  activate(0);
+  let i = 1;
+  const iv = setInterval(() => {
+    if (i >= total) { clearInterval(iv); steps[total-1].classList.add('done'); setTimeout(cb, 350); }
+    else { activate(i++); }
+  }, 1050);
+}
+
+runSequence(() => {
+  bar.style.width = '92%';
+  label.textContent = 'Finalizando…';
+  fetch(`${PREFIX}/run-analysis/${SESSION_ID}`)
+    .then(r => r.json())
+    .then(d => {
+      bar.style.width = '100%';
+      label.textContent = '¡Diagnóstico listo!';
+      setTimeout(() => { window.location.href = d.redirect; }, 500);
+    })
+    .catch(() => {
+      setTimeout(() => { window.location.href = `${PREFIX}/resultados/${SESSION_ID}`; }, 1200);
+    });
+});
+</script>
+{% endblock %}
