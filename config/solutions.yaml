@@ -1,0 +1,84 @@
+solutions:
+  crm_superleads:
+    id: crm_superleads
+    name: "CRM SuperLeads"
+    level: base
+    objective: "Centralizar prospectos, seguimiento y métricas de admisiones en un solo sistema"
+    when_applies: "Cuando el proceso vive en hojas de cálculo, WhatsApp o correo sin trazabilidad"
+    public_message: "Un sistema central de gestión haría visible lo que hoy se pierde entre canales."
+    internal_message: "Demo CRM: mostrar pipeline, automatizaciones y dashboards en vivo"
+    demo_angle: "Mostrar cómo un lead entra y cómo el asesor sabe exactamente qué hacer y cuándo"
+    requires_crm_base: false
+    role: prerequisite
+
+  direccion_estrategica:
+    id: direccion_estrategica
+    name: "Dirección Estratégica del Sistema de Inscripciones"
+    level: activator
+    objective: "Diseñar y alinear el sistema completo de admisiones con estrategia y métricas claras"
+    when_applies: "Cuando hay conversión baja distribuida en todo el embudo sin causa única"
+    public_message: "El problema no es un paso; es el sistema completo que necesita dirección."
+    internal_message: "Proponer sesión de estrategia como primer entregable de valor"
+    demo_angle: "Mostrar diagnóstico → diseño de sistema → implementación como proceso guiado"
+    requires_crm_base: true
+    role: primary
+
+  campanas_generacion_demanda:
+    id: campanas_generacion_demanda
+    name: "Campañas Integrales de Generación de Demanda"
+    level: activator
+    objective: "Aumentar volumen de prospectos calificados a través de canales pagados y orgánicos"
+    when_applies: "Cuando los leads son insuficientes para alcanzar la meta de inscritos"
+    public_message: "Con el sistema actual, más prospectos calificados acelerarían el crecimiento."
+    internal_message: "Mostrar casos de éxito de campañas con ROI medido en inscritos"
+    demo_angle: "Comparar costo por lead vs costo por inscrito con y sin sistema"
+    requires_crm_base: true
+    role: primary
+
+  optimizacion_puntos_contacto:
+    id: optimizacion_puntos_contacto
+    name: "Optimización de Puntos de Contacto"
+    level: activator
+    objective: "Mejorar WhatsApp, formularios, CTA y presencia digital para captar más contactos"
+    when_applies: "Cuando la huella digital tiene gaps críticos o los canales no convierten"
+    public_message: "Lo que no está visible en digital termina costando contacto o confianza."
+    internal_message: "Auditoría de puntos de contacto como primer entregable rápido de valor"
+    demo_angle: "Mostrar antes/después de institución similar con puntos optimizados"
+    requires_crm_base: false
+    role: complementary
+
+  taller_inscripcion_ventas:
+    id: taller_inscripcion_ventas
+    name: "Taller: Inscripción es Cuestión de Ventas"
+    level: execution
+    objective: "Mejorar tasa de cierre en cita con técnicas de ventas para admisiones educativas"
+    when_applies: "Cuando hay citas pero pocos inscritos; bajo cierre en entrevista"
+    public_message: "Las citas se están perdiendo por razones que se pueden corregir con entrenamiento."
+    internal_message: "Taller práctico de 1 día; alta percepción de valor inmediato"
+    demo_angle: "Mostrar guión de cierre vs manejo actual de objeciones"
+    requires_crm_base: false
+    role: primary
+
+  seguimiento_comercial:
+    id: seguimiento_comercial
+    name: "Seguimiento Comercial"
+    level: execution
+    objective: "Instalar disciplina y automatización de seguimiento post-cita y post-contacto"
+    when_applies: "Cuando los leads se 'enfrían' por falta de seguimiento sistemático"
+    public_message: "La mayoría de las inscripciones perdidas se deciden en el seguimiento, no en la cita."
+    internal_message: "Mostrar flujo de seguimiento automatizado vs proceso actual manual"
+    demo_angle: "Demo de secuencias de mensajes automáticos con personalización"
+    requires_crm_base: true
+    role: complementary
+
+  ia_conversacional:
+    id: ia_conversacional
+    name: "IA Conversacional de SuperLeads"
+    level: specialized
+    objective: "Responder leads en segundos, 24/7, calificar y agendar automáticamente"
+    when_applies: "Cuando el tiempo de primera respuesta supera 60 min o hay cobertura fuera de horario deficiente"
+    public_message: "Cada minuto que tarda la primera respuesta reduce la probabilidad de cita."
+    internal_message: "Demo en vivo de bot conversacional con un número de prueba"
+    demo_angle: "Simular lead entrando y respondiendo en 30 segundos vs proceso actual"
+    requires_crm_base: true
+    role: complementary
