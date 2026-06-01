@@ -1,0 +1,100 @@
+{% extends "rayosx/base.html" %}
+{% block title %}Revisión — Rayos X Inscripciones{% endblock %}
+{% block body %}
+<div class="min-h-screen flex flex-col">
+
+  <div class="topbar">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img class="logo-mark" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/69cde95a69eb1fa3e7917e1d.svg" alt="SuperLeads"/>
+      <span style="font-size:13px; font-weight:600; color:var(--muted);">Rayos X</span>
+    </div>
+    <span class="status-pill status-pill-cyan">Revisión final</span>
+    <span style="font-size:10.5px; color:rgba(170,196,255,0.35); font-family:monospace;">{{ short_code }}</span>
+  </div>
+
+  <div class="flex-1 flex justify-center px-5 py-10">
+    <div class="page-content" style="width:100%; max-width:720px;">
+
+      <div class="section-label">Últimos 5 de 5 pasos</div>
+      <h2 style="font-size:1.65rem; font-weight:700; color:var(--text); margin-bottom:8px; letter-spacing:-0.01em;">Revisa antes de analizar</h2>
+      <p style="color:var(--muted); font-size:14px; margin-bottom:28px; line-height:1.6;">Con lo que sí sabes ya podemos ver el sistema. Puedes volver a editar cualquier sección.</p>
+
+      {% set sections = [
+        (1,'Identidad',[
+          ('Institución', answers.get('institution_name','')),
+          ('Tipo', answers.get('institution_type','')),
+          ('Contacto', answers.get('contact_name','')),
+          ('Ciudad', answers.get('city','')),
+          ('Matrícula actual', answers.get('current_enrollment','')),
+          ('Capacidad máx.', answers.get('max_capacity','')),
+          ('Ticket promedio', ('$' ~ answers.get('average_ticket','')) if answers.get('average_ticket') else ''),
+        ]),
+        (2,'Embudo',[
+          ('Conversaciones/día', answers.get('daily_conversations','')),
+          ('Leads/año', answers.get('leads','')),
+          ('Contactados (est.)', answers.get('contacted','')),
+          ('Citas (est.)', answers.get('appointments','')),
+          ('Asistentes (est.)', answers.get('attended','')),
+          ('Inscritos', answers.get('enrolled','')),
+          ('Meta inscritos', answers.get('target_new_enrollments','')),
+        ]),
+        (3,'Velocidad',[
+          ('Primer contacto', answers.get('first_contact_delay_bucket','').replace('_',' ')),
+          ('IA conversacional', answers.get('uses_conversational_ai','')),
+          ('Cobertura fuera horario', answers.get('after_hours_coverage','')),
+          ('Miden tiempos', answers.get('measures_response_times','')),
+        ]),
+        (4,'Canales',[
+          ('CRM', answers.get('uses_crm','')),
+          ('Canales integrados', answers.get('channels_integrated','')),
+          ('Dashboard', answers.get('has_stage_dashboard','')),
+          ('Mejor fuente', answers.get('best_enrollments_source','')),
+        ]),
+        (5,'Mercado',[
+          ('Razón de pérdida', answers.get('primary_loss_reason','').replace('_',' ')),
+          ('Calidad leads', answers.get('lead_quality_perception','')),
+          ('Propuesta de valor', answers.get('value_proposition_clarity','')),
+          ('Cupo disponible', answers.get('has_real_room_to_grow','')),
+        ]),
+      ] %}
+
+      {% for step_num, title, fields in sections %}
+      <div class="card" style="padding:18px 22px; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:24px; height:24px; border-radius:6px; background:{% if loop.index < 4 %}rgba(86,239,159,0.15){% else %}rgba(29,178,252,0.15){% endif %}; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:{% if loop.index < 4 %}var(--accent){% else %}var(--cyan){% endif %};">{{ step_num }}</div>
+            <span style="font-weight:700; color:var(--text); font-size:14px;">{{ title }}</span>
+          </div>
+          <a href="{{ prefix }}/paso/{{ step_num }}/{{ session_id }}" style="font-size:12px; color:var(--blue); text-decoration:none; font-weight:500;">Editar →</a>
+        </div>
+        <hr class="divider" style="margin-bottom:12px;"/>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 20px;">
+          {% for label, val in fields %}
+          <div style="display:flex; gap:6px; align-items:baseline;">
+            <span style="font-size:11.5px; color:var(--muted); white-space:nowrap;">{{ label }}:</span>
+            <span style="font-size:12px; color:{% if val %}var(--text){% else %}rgba(170,196,255,0.25){% endif %}; font-weight:{% if val %}500{% else %}400{% endif %};">
+              {% if val %}{{ val }}{% else %}<em style="font-style:italic; font-size:11px;">Sin dato</em>{% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- CTA -->
+      <div style="background:linear-gradient(135deg,rgba(86,239,159,0.06),rgba(29,178,252,0.06)); border:1px solid rgba(86,239,159,0.2); border-radius:13px; padding:26px 28px; margin-top:20px; text-align:center;">
+        <p style="color:var(--muted); font-size:14px; line-height:1.65; margin-bottom:20px; max-width:500px; margin-left:auto; margin-right:auto;">
+          Este diagnóstico busca claridad, no perfección contable. Con estos datos ya podemos detectar los principales cuellos del sistema.
+        </p>
+        <form method="POST" action="{{ prefix }}/analizar/{{ session_id }}">
+          <button type="submit" class="btn-primary" style="font-size:1rem; padding:15px 40px; border-radius:12px;">
+            Analizar diagnóstico
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
