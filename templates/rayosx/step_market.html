@@ -1,0 +1,120 @@
+{% extends "rayosx/_step_shell.html" %}
+{% block step_content %}
+
+<div class="section-label">Paso 5 de 5</div>
+<h2 style="font-size:1.65rem; font-weight:700; color:var(--text); margin-bottom:8px; letter-spacing:-0.01em;">Calidad, objeciones y mercado</h2>
+<p style="color:var(--muted); font-size:14px; margin-bottom:28px; line-height:1.6;">No todo se arregla con software. Primero separamos estructura de mercado.</p>
+
+<form method="POST" action="/paso/5/{{ session_id }}">
+
+  <div style="margin-bottom:22px;">
+    <label class="field-label">Objeciones más frecuentes de los prospectos</label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+      {% for val in ['El precio es alto','Está muy lejos','No conocen la institución','Prefieren otra opción','Trámites complicados','Dudas sobre calidad académica','Falta de becas','Problemas de calendario'] %}
+      <label class="chip {% if val in (answers.get('top_2_objections','').split('|')) %}selected{% endif %}">
+        <input type="checkbox" name="obj_{{ loop.index }}" value="{{ val }}" {% if val in (answers.get('top_2_objections','').split('|')) %}checked{% endif %}/>
+        {{ val }}
+      </label>
+      {% endfor %}
+    </div>
+    <input class="input-field" type="text" name="top_2_objections_text" placeholder="O escribe las objeciones exactas que más escuchan…" value="{{ answers.get('top_2_objections_text','') }}"/>
+  </div>
+
+  <div style="margin-bottom:22px;">
+    <label class="field-label">¿Por qué razón principal pierden prospectos interesados?</label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for val, label in [('precio','Por precio'),('competencia','Se fue a la competencia'),('falta_seguimiento','Falta de seguimiento'),('proceso_complejo','Proceso muy complicado'),('no_convencio','No convenció la propuesta'),('tiempo','Se quedó sin tiempo'),('no_sabe','No lo sabemos')] %}
+      <label class="chip {% if answers.get('primary_loss_reason')==val %}selected{% endif %}">
+        <input type="radio" name="primary_loss_reason" value="{{ val }}" {% if answers.get('primary_loss_reason')==val %}checked{% endif %}/>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="margin-bottom:22px;">
+    <label class="field-label">Principales competidores (con quién los comparan más)</label>
+    <input class="input-field" type="text" name="main_competitors" placeholder="Ej. Colegio Americano, Instituto Tecnológico…" value="{{ answers.get('main_competitors','') }}"/>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:22px;">
+    <div>
+      <label class="field-label">Percepción de calidad de leads</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('alta','Alta — mayoría calificados'),('media','Media — mezcla'),('baja','Baja — muchos sin perfil')] %}
+        <label class="chip {% if answers.get('lead_quality_perception')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="lead_quality_perception" value="{{ val }}" {% if answers.get('lead_quality_perception')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="field-label">¿La propuesta de valor es clara y diferenciada?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, muy clara'),('parcial','Parcialmente'),('no','Es difusa o genérica')] %}
+        <label class="chip {% if answers.get('value_proposition_clarity')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="value_proposition_clarity" value="{{ val }}" {% if answers.get('value_proposition_clarity')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacidad -->
+  <div class="form-group" style="margin-bottom:22px;">
+    <div class="section-label" style="margin-bottom:12px;">Capacidad de crecimiento</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      <div>
+        <label class="field-label">¿Tienen espacio real para más alumnos?</label>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          {% for val, label in [('si','Sí, hay cupo'),('parcial','Limitado'),('no','No, al tope')] %}
+          <label class="chip {% if answers.get('has_real_room_to_grow')==val %}selected{% endif %}" style="border-radius:9px;">
+            <input type="radio" name="has_real_room_to_grow" value="{{ val }}" {% if answers.get('has_real_room_to_grow')==val %}checked{% endif %}/>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="field-label">¿Podrían absorber más alumnos si mejora la conversión?</label>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          {% for val, label in [('si','Sí, sin problema'),('parcial','Con algunos ajustes'),('no','Requeriría expansión')] %}
+          <label class="chip {% if answers.get('can_absorb_more_if_conversion_improves')==val %}selected{% endif %}" style="border-radius:9px;">
+            <input type="radio" name="can_absorb_more_if_conversion_improves" value="{{ val }}" {% if answers.get('can_absorb_more_if_conversion_improves')==val %}checked{% endif %}/>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notas internas -->
+  <div class="form-group" style="margin-bottom:28px;">
+    <div class="section-label" style="margin-bottom:10px;">Notas del asesor <span style="color:rgba(170,196,255,0.35); font-weight:400; text-transform:none; letter-spacing:0; font-size:11px;">(internas — no aparecen en el PDF del cliente)</span></div>
+    <textarea class="input-field" name="internal_notes" style="margin-bottom:10px;" placeholder="Observaciones del prospecto, frases literales importantes, señales de interés o resistencia…">{{ answers.get('internal_notes','') }}</textarea>
+    <input class="input-field" type="text" name="next_step" placeholder="Próximo paso pactado (ej. Demo jueves 15 a las 3pm)" value="{{ answers.get('next_step','') }}"/>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <a href="/paso/4/{{ session_id }}" class="btn-ghost">← Anterior</a>
+    <button type="submit" class="btn-primary">
+      Revisar y analizar
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+    </button>
+  </div>
+</form>
+
+<script>
+document.querySelectorAll('.chip').forEach(chip => {
+  const inp = chip.querySelector('input');
+  if (!inp) return;
+  chip.addEventListener('click', () => {
+    if (inp.type === 'radio') document.querySelectorAll(`[name="${inp.name}"]`).forEach(i => i.closest('.chip')?.classList.remove('selected'));
+    chip.classList.toggle('selected', inp.type === 'checkbox' ? inp.checked : true);
+  });
+});
+</script>
+{% endblock %}
