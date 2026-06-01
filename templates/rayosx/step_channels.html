@@ -1,0 +1,121 @@
+{% extends "rayosx/_step_shell.html" %}
+{% block step_content %}
+
+<div class="section-label">Paso 4 de 5</div>
+<h2 style="font-size:1.65rem; font-weight:700; color:var(--text); margin-bottom:8px; letter-spacing:-0.01em;">Canales y estructura digital</h2>
+<p style="color:var(--muted); font-size:14px; margin-bottom:28px; line-height:1.6;">Cuando marketing y admisiones no cuentan la misma historia, la conversión se rompe en silencio.</p>
+
+<form method="POST" action="/paso/4/{{ session_id }}">
+
+  <div style="margin-bottom:22px;">
+    <label class="field-label">Canales de captación activos (selecciona todos los que usan)</label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for val in ['Facebook Ads','Instagram','Google Ads','TikTok','WhatsApp orgánico','Referidos','Eventos presenciales','SEO / Blog','Email marketing','Otro'] %}
+      <label class="chip {% if val in (answers.get('top_3_channels','').split(',')) %}selected{% endif %}">
+        <input type="checkbox" name="ch_{{ loop.index }}" value="{{ val }}" {% if val in (answers.get('top_3_channels','').split(',')) %}checked{% endif %}/>
+        {{ val }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="margin-bottom:22px;">
+    <label class="field-label">¿Cuál es la fuente que más inscritos genera hoy?</label>
+    <input class="input-field" type="text" name="best_enrollments_source" placeholder="Ej. Referidos de padres, Facebook Ads, ferias escolares…" value="{{ answers.get('best_enrollments_source','') }}"/>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:22px;">
+    <div>
+      <label class="field-label">¿Usan CRM para gestionar prospectos?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, CRM dedicado'),('parcial','Sí, parcialmente'),('no','No, solo hojas/correo')] %}
+        <label class="chip {% if answers.get('uses_crm')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="uses_crm" value="{{ val }}" {% if answers.get('uses_crm')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="field-label">¿El seguimiento vive en hojas de cálculo?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Principalmente sí'),('parcial','Parcialmente'),('no','No')] %}
+        <label class="chip {% if answers.get('uses_spreadsheets')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="uses_spreadsheets" value="{{ val }}" {% if answers.get('uses_spreadsheets')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:22px;">
+    <div>
+      <label class="field-label">¿Tienen dashboard de etapas del embudo?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, lo revisamos'),('parcial','Algo informal'),('no','No existe')] %}
+        <label class="chip {% if answers.get('has_stage_dashboard')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="has_stage_dashboard" value="{{ val }}" {% if answers.get('has_stage_dashboard')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="field-label">¿Los canales de captación están integrados?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, centralizados'),('parcial','Parcialmente'),('no','No, fragmentados')] %}
+        <label class="chip {% if answers.get('channels_integrated')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="channels_integrated" value="{{ val }}" {% if answers.get('channels_integrated')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:26px;">
+    <div>
+      <label class="field-label">¿Tienen guiones de seguimiento documentados?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, documentados'),('informal','Informal / de cabeza'),('no','No')] %}
+        <label class="chip {% if answers.get('has_followup_scripts')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="has_followup_scripts" value="{{ val }}" {% if answers.get('has_followup_scripts')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="field-label">¿Marketing y admisiones dicen lo mismo?</label>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        {% for val, label in [('si','Sí, alineados'),('parcial','Parcialmente'),('no','Hay diferencia notable')] %}
+        <label class="chip {% if answers.get('marketing_admissions_message_alignment')==val %}selected{% endif %}" style="border-radius:9px;">
+          <input type="radio" name="marketing_admissions_message_alignment" value="{{ val }}" {% if answers.get('marketing_admissions_message_alignment')==val %}checked{% endif %}/>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <a href="/paso/3/{{ session_id }}" class="btn-ghost">← Anterior</a>
+    <button type="submit" class="btn-primary">
+      Continuar a mercado
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</form>
+
+<script>
+document.querySelectorAll('.chip').forEach(chip => {
+  const inp = chip.querySelector('input');
+  if (!inp) return;
+  chip.addEventListener('click', () => {
+    if (inp.type === 'radio') document.querySelectorAll(`[name="${inp.name}"]`).forEach(i => i.closest('.chip')?.classList.remove('selected'));
+    chip.classList.toggle('selected', inp.type === 'checkbox' ? inp.checked : true);
+  });
+});
+</script>
+{% endblock %}
