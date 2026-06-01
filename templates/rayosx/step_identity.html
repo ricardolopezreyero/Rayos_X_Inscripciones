@@ -1,0 +1,127 @@
+{% extends "rayosx/_step_shell.html" %}
+{% block step_content %}
+
+<div class="section-label">Paso 1 de 5</div>
+<h2 style="font-size:1.65rem; font-weight:700; color:var(--text); margin-bottom:8px; letter-spacing:-0.01em;">Identidad de la institución</h2>
+<p style="color:var(--muted); font-size:14px; margin-bottom:4px; line-height:1.6;">Antes de ver la fuga, ubicamos contexto, presión y espacio real de crecimiento.</p>
+<p style="font-size:12px; color:rgba(170,196,255,0.45); margin-bottom:32px; font-style:italic;">No necesitas tener todos los números para avanzar.</p>
+
+<form method="POST" action="/paso/1/{{ session_id }}">
+
+  <!-- Nombre -->
+  <div style="margin-bottom:20px;">
+    <label class="field-label">Nombre de la institución <span class="req">*</span></label>
+    <input class="input-field" type="text" name="institution_name"
+           placeholder="Ej. Colegio San Patricio"
+           value="{{ answers.get('institution_name','') }}" required/>
+  </div>
+
+  <!-- Tipo -->
+  <div style="margin-bottom:20px;">
+    <label class="field-label">Tipo de institución <span class="req">*</span></label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for val, label in [('K12','K-12 / Colegio'),('Prepa','Preparatoria'),('Universidad','Universidad / Posgrado'),('Otro','Otro')] %}
+      <label class="chip {% if answers.get('institution_type')==val %}selected{% endif %}">
+        <input type="radio" name="institution_type" value="{{ val }}" {% if answers.get('institution_type')==val %}checked{% endif %} required/>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Modalidad -->
+  <div style="margin-bottom:20px;">
+    <label class="field-label">Modalidad principal</label>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for val, label in [('presencial','Presencial'),('hibrida','Híbrida'),('en_linea','En línea')] %}
+      <label class="chip {% if answers.get('main_modality')==val %}selected{% endif %}">
+        <input type="radio" name="main_modality" value="{{ val }}" {% if answers.get('main_modality')==val %}checked{% endif %}/>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Contacto -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
+    <div>
+      <label class="field-label">Nombre del contacto</label>
+      <input class="input-field" type="text" name="contact_name" placeholder="Ej. María González" value="{{ answers.get('contact_name','') }}"/>
+    </div>
+    <div>
+      <label class="field-label">Email</label>
+      <input class="input-field" type="email" name="contact_email" placeholder="correo@institucion.edu" value="{{ answers.get('contact_email','') }}"/>
+    </div>
+    <div>
+      <label class="field-label">Teléfono / WhatsApp</label>
+      <input class="input-field" type="text" name="contact_phone" placeholder="+52 55 0000 0000" value="{{ answers.get('contact_phone','') }}"/>
+    </div>
+    <div>
+      <label class="field-label">Ciudad</label>
+      <input class="input-field" type="text" name="city" placeholder="Ciudad de México" value="{{ answers.get('city','') }}"/>
+    </div>
+  </div>
+
+  <!-- Sitio web -->
+  <div style="margin-bottom:20px;">
+    <label class="field-label">Sitio web</label>
+    <input class="input-field" type="url" name="website_url" placeholder="https://www.miinstitucion.edu.mx" value="{{ answers.get('website_url','') }}"/>
+    <p style="font-size:11px; color:rgba(170,196,255,0.4); margin-top:5px;">Lo usaremos para revisar la huella digital básica en segundo plano.</p>
+  </div>
+
+  <!-- Contexto económico -->
+  <div class="form-group" style="margin-bottom:20px;">
+    <div class="section-label" style="margin-bottom:14px;">Contexto económico <span style="color:rgba(170,196,255,0.4);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">(opcional pero muy valioso)</span></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div>
+        <label class="field-label">Matrícula actual</label>
+        <input class="input-field" type="number" name="current_enrollment" placeholder="ej. 450" value="{{ answers.get('current_enrollment','') }}" min="0"/>
+      </div>
+      <div>
+        <label class="field-label">Capacidad máxima</label>
+        <input class="input-field" type="number" name="max_capacity" placeholder="ej. 600" value="{{ answers.get('max_capacity','') }}" min="0"/>
+      </div>
+      <div>
+        <label class="field-label">Meta nuevos inscritos</label>
+        <input class="input-field" type="number" name="target_new_enrollments" placeholder="ej. 80" value="{{ answers.get('target_new_enrollments','') }}" min="0"/>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div>
+        <label class="field-label">Colegiatura anual promedio (MXN)</label>
+        <input class="input-field" type="number" name="average_ticket" placeholder="ej. 75,000" value="{{ answers.get('average_ticket','') }}" min="0"/>
+      </div>
+      <div>
+        <label class="field-label">Operador / Asesor SuperLeads</label>
+        <input class="input-field" type="text" name="operator_name" placeholder="Nombre del asesor" value="{{ answers.get('operator_name','') }}"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notas -->
+  <div style="margin-bottom:28px;">
+    <label class="field-label">Notas iniciales <span style="color:rgba(170,196,255,0.4); font-weight:400;">(lo que ya sospechan o saben)</span></label>
+    <textarea class="input-field" name="initial_notes" placeholder="Ej. Tenemos muchos leads pero pocos inscritos, el equipo cree que el problema es el precio...">{{ answers.get('initial_notes','') }}</textarea>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end;">
+    <button type="submit" class="btn-primary">
+      Continuar a embudo
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</form>
+
+<script>
+document.querySelectorAll('.chip').forEach(chip => {
+  const inp = chip.querySelector('input');
+  if (!inp) return;
+  chip.addEventListener('click', () => {
+    if (inp.type === 'radio') {
+      document.querySelectorAll(`[name="${inp.name}"]`).forEach(i => i.closest('.chip')?.classList.remove('selected'));
+    }
+    chip.classList.toggle('selected', inp.type === 'checkbox' ? inp.checked : true);
+  });
+});
+</script>
+{% endblock %}
