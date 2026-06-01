@@ -1,0 +1,45 @@
+{% extends "rayosx/base.html" %}
+{% block body %}
+<div class="min-h-screen flex flex-col">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <!-- Logo -->
+    <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; min-width:0;">
+      <img class="logo-mark" src="https://assets.cdn.filesafe.space/E6Gh1sE1RnPtadmL7wmG/media/69cde95a69eb1fa3e7917e1d.svg" alt="SuperLeads"/>
+      <span class="topbar-brand-sub" style="font-size:13px; font-weight:600; color:var(--muted); white-space:nowrap;">Rayos X</span>
+    </div>
+
+    <!-- Progress — center on desktop, right on mobile -->
+    <div style="flex:1; min-width:0; max-width:460px; padding:0 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; gap:6px;">
+        <span style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">
+          <strong style="color:var(--text);">Paso {{ step }}</strong><span class="hide-mobile"> de {{ total_steps }} &nbsp;·&nbsp; {{ step_name }}</span><span class="hide-desktop" style="color:var(--muted);">/{{ total_steps }}</span>
+        </span>
+        <span style="font-size:11px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ progress_pct }}%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" style="width:{{ progress_pct }}%;"></div>
+      </div>
+    </div>
+
+    <!-- Session code — hidden on mobile -->
+    <span class="hide-mobile" style="font-size:10.5px; color:rgba(170,196,255,0.35); font-family:monospace; flex-shrink:0;">{{ short_code }}</span>
+  </div>
+
+  <!-- Step dots -->
+  <div style="display:flex; justify-content:center; gap:6px; padding:12px 0; border-bottom:1px solid rgba(42,137,251,0.08);">
+    {% for i in range(1, total_steps + 1) %}
+    <div style="width:{% if i == step %}24px{% else %}8px{% endif %};height:8px;border-radius:99px;background:{% if i < step %}var(--accent){% elif i == step %}var(--cyan){% else %}rgba(42,137,251,0.2){% endif %};transition:all 0.4s cubic-bezier(0.22,1,0.36,1);"></div>
+    {% endfor %}
+  </div>
+
+  <!-- Content -->
+  <div class="flex-1 flex justify-center px-5 py-10">
+    <div class="page-content" style="width:100%; max-width:680px;">
+      {% block step_content %}{% endblock %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
