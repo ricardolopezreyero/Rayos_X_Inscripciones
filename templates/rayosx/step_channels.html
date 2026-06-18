@@ -11,8 +11,9 @@
     <label class="field-label">Canales de captación activos (selecciona todos los que usan)</label>
     <div style="display:flex; flex-wrap:wrap; gap:8px;">
       {% for val in ['Facebook Ads','Instagram','Google Ads','TikTok','WhatsApp orgánico','Referidos','Eventos presenciales','SEO / Blog','Email marketing','Otro'] %}
-      <label class="chip {% if val in (answers.get('top_3_channels','').split(',')) %}selected{% endif %}">
-        <input type="checkbox" name="ch_{{ loop.index }}" value="{{ val }}" {% if val in (answers.get('top_3_channels','').split(',')) %}checked{% endif %}/>
+      {% set checked = answers.get('ch_' ~ loop.index) == val %}
+      <label class="chip {% if checked %}selected{% endif %}">
+        <input type="checkbox" name="ch_{{ loop.index }}" value="{{ val }}" {% if checked %}checked{% endif %}/>
         {{ val }}
       </label>
       {% endfor %}
