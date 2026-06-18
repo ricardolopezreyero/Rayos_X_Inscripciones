@@ -23,11 +23,13 @@
   </div>
 
   <div style="margin-bottom:22px;">
-    <label class="field-label">¿En qué horario se atienden los leads?</label>
+    <label class="field-label">¿En qué horario se atienden los leads? <span style="color:rgba(170,196,255,0.4);font-weight:400;font-size:11px;">(marca todos los que apliquen)</span></label>
     <div style="display:flex; flex-wrap:wrap; gap:8px;">
-      {% for val, label in [('horario_oficina','Solo horario oficina'),('horario_ampliado','Hasta las 8pm'),('fines_semana','Incluye fines de semana'),('24_7','24/7')] %}
-      <label class="chip {% if answers.get('lead_attention_schedule')==val %}selected{% endif %}">
-        <input type="radio" name="lead_attention_schedule" value="{{ val }}" {% if answers.get('lead_attention_schedule')==val %}checked{% endif %}/>
+      {% set sched_legacy = answers.get('lead_attention_schedule','') %}
+      {% for name, val_legacy, label in [('sched_oficina','horario_oficina','Horario de oficina'),('sched_tarde','horario_ampliado','Tardes hasta 8pm'),('sched_finde','fines_semana','Fines de semana'),('sched_247','24_7','24/7')] %}
+      {% set checked = answers.get(name)=='si' or val_legacy in sched_legacy.split(',') %}
+      <label class="chip {% if checked %}selected{% endif %}">
+        <input type="checkbox" name="{{ name }}" value="si" {% if checked %}checked{% endif %}/>
         {{ label }}
       </label>
       {% endfor %}
