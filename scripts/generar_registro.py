@@ -173,7 +173,7 @@ def generar():
                 num(a.get('enrolled')),
                 a.get('best_enrollments_source',''),
 
-                LOSS_MAP.get(a.get('primary_loss_reason',''), a.get('primary_loss_reason','')),
+                ', '.join(LOSS_MAP.get(c, c) for c in a.get('loss_reasons', a.get('primary_loss_reason','')).split(',') if c),
                 CAL_MAP.get(a.get('lead_quality_perception',''), a.get('lead_quality_perception','')),
                 VEL_MAP.get(a.get('first_contact_delay_bucket',''), a.get('first_contact_delay_bucket','')),
                 DIAS_MAP.get(a.get('days_first_contact_to_resolution',''), a.get('days_first_contact_to_resolution','')),
