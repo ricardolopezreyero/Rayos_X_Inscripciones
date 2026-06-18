@@ -188,43 +188,93 @@ async def get_step(request: Request, step: int, session_id: str, db: Session = D
     return _tr(request, STEP_TEMPLATES[step], _step_ctx(step, session, answers))
 
 
+# Checkboxes por paso: si el usuario los desmarca no viajan en el form,
+# así que hay que limpiar los valores guardados antes de re-aplicar.
+_CHECKBOX_PREFIXES = {
+    3: ("easy_scheduling", "can_advance_online", "can_pay_online",
+        "automated_followup", "sched_"),
+    4: ("ch_",),
+    5: ("obj_", "loss_"),
+}
+
+
 @app.post(PREFIX + "/paso/{step}/{session_id}")
 async def post_step(request: Request, step: int, session_id: str, db: Session = Depends(get_db)):
     session = _get_session_or_404(session_id, db)
     form = await request.form()
     answers = session.get_answers()
 
+    # Limpiar checkboxes rancios de este paso antes de aplicar el form
+    for prefix in _CHECKBOX_PREFIXES.get(step, ()):
+        for key in [k for k in answers if k.startswith(prefix)]:
+            del answers[key]
+
     for key, value in form.items():
         if key.startswith("_"):
             continue
         answers[key] = str(value).strip()
 
-    # Step 2: derive integer funnel values from the new simplified inputs
+    # ── Paso 2: embudo en CASCADA — cada % es sobre la etapa anterior ─────
+    #   leads → ×contact% → contactados → ×cita% → citas → ×asistencia% →
+    #   asistentes → ×cierre% → inscritos (estimado)
+    #   Si el usuario dio inscritos reales, ese número manda; la estimación
+    #   queda guardada aparte para mostrar la coherencia.
     if step == 2:
         try:
-            daily = int(answers.get("daily_conversations") or 0)
-            leads_year = daily * 365
+            daily          = int(answers.get("daily_conversations") or 0)
+            leads_year     = daily * 365
             enrolled_total = int(answers.get("enrolled_total") or 0)
-            contact_pct  = int(answers.get("contact_pct")  or 60)
-            appt_pct     = int(answers.get("appointment_pct") or 30)
-            att_pct      = int(answers.get("attendance_pct") or 20)
-            close_pct    = int(answers.get("close_pct")    or 50)
+            contact_pct    = int(answers.get("contact_pct") or 60)
+            appt_pct       = int(answers.get("appointment_pct") or 40)
+            att_pct        = int(answers.get("attendance_pct") or 70)
+            close_pct      = int(answers.get("close_pct") or 50)
 
             if leads_year > 0:
-                answers["leads"]        = str(leads_year)
-                answers["contacted"]    = str(int(leads_year * contact_pct / 100))
-                answers["appointments"] = str(int(leads_year * appt_pct   / 100))
-                attended = int(leads_year * att_pct / 100)
-                answers["attended"]     = str(attended)
-                # close_pct = % of attendees who enroll
+                contacted    = leads_year * contact_pct // 100
+                appointments = contacted * appt_pct // 100
+                attended     = appointments * att_pct // 100
+                enrolled_est = attended * close_pct // 100
+
+                answers["leads"]              = str(leads_year)
+                answers["contacted"]          = str(contacted)
+                answers["appointments"]       = str(appointments)
+                answers["attended"]           = str(attended)
+                answers["enrolled_estimated"] = str(enrolled_est)
+                answers["funnel_pct_mode"]    = "cascade"
+
                 if enrolled_total > 0:
                     answers["enrolled"] = str(enrolled_total)
-                elif close_pct > 0:
-                    answers["enrolled"] = str(int(attended * close_pct / 100))
+                    if attended > 0:
+                        answers["implied_close_pct"] = str(round(enrolled_total / attended * 100))
+                else:
+                    answers["enrolled"] = str(enrolled_est)
             elif enrolled_total > 0:
                 answers["enrolled"] = str(enrolled_total)
         except (ValueError, TypeError):
             pass
+
+    # ── Paso 3: combinar horarios de atención (multi-select) ─────────────
+    if step == 3:
+        sched = [code for code, key in [
+            ("horario_oficina", "sched_oficina"),
+            ("horario_ampliado", "sched_tarde"),
+            ("fines_semana", "sched_finde"),
+            ("24_7", "sched_247"),
+        ] if answers.get(key) == "si"]
+        if sched:
+            answers["lead_attention_schedule"] = ",".join(sched)
+
+    # ── Paso 5: combinar objeciones y razones de pérdida (multi-select) ──
+    if step == 5:
+        objs = [answers[k] for k in sorted(answers) if k.startswith("obj_") and answers.get(k)]
+        if objs or answers.get("top_2_objections_text"):
+            full = objs + ([answers["top_2_objections_text"]] if answers.get("top_2_objections_text") else [])
+            answers["objections_list"] = " | ".join(full)
+
+        losses = [answers[k] for k in sorted(answers) if k.startswith("loss_") and answers.get(k)]
+        if losses:
+            answers["primary_loss_reason"] = losses[0]
+            answers["loss_reasons"] = ",".join(losses)
 
     session.set_answers(answers)
     session.updated_at = datetime.utcnow()
@@ -307,12 +357,17 @@ async def results(request: Request, session_id: str, db: Session = Depends(get_d
     answers = session.get_answers()
     findings = session.get_findings()
     metrics = compute_funnel_metrics(answers)
+    # Recalcular el total recuperable (no se persiste; barato de computar)
+    from .services.diagnosis_engine import _compute_total_recoverable, _load_rules
+    _bench = _load_rules().get("benchmarks", {})
+    total_recoverable = _compute_total_recoverable(metrics, _bench) if _bench else {}
 
     return _tr(request, "rayosx/results.html", {
         "session": session,
         "answers": answers,
         "findings": findings,
         "metrics": metrics,
+        "total_recoverable": total_recoverable,
         "prefix": PREFIX,
         "has_pdf_client": bool(session.pdf_client_path and os.path.exists(session.pdf_client_path or "")),
         "has_pdf_internal": bool(session.pdf_internal_path and os.path.exists(session.pdf_internal_path or "")),
