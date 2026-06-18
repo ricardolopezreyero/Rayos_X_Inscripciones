@@ -51,7 +51,7 @@
           ('Mejor fuente', answers.get('best_enrollments_source','')),
         ]),
         (5,'Mercado',[
-          ('Razón de pérdida', answers.get('primary_loss_reason','').replace('_',' ')),
+          ('Razones de pérdida', answers.get('loss_reasons', answers.get('primary_loss_reason','')).replace('_',' ').replace(',', ', ')),
           ('Calidad leads', answers.get('lead_quality_perception','')),
           ('Propuesta de valor', answers.get('value_proposition_clarity','')),
           ('Cupo disponible', answers.get('has_real_room_to_grow','')),
