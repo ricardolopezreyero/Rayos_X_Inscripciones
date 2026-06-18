@@ -202,16 +202,38 @@ def _read_events(since_days: int = 400) -> list[dict]:
                 })
                 continue
 
-            # Precio: buscar en todo el detalle (con o sin $, con o sin comas)
-            prices = _RX_MONEY.findall(rest)
-            # Fallback: buscar precio sin signo $ (formato antiguo: precio=73635.18)
-            if not prices:
-                m_p = re.search(r'precio[=:\s]*([\d,]+(?:\.[\d]+)?)', rest, re.IGNORECASE)
-                if m_p:
-                    prices = [m_p.group(1)]
-            if not prices:
+            # Precio de ejecución: depende del tipo de evento
+            # - VENTA/SELL: el precio es `precio=X` o `venta=X` (precio al que se vendió)
+            # - STOP LOSS: tiene formato `compra=$X venta=$Y` → usar `venta=` (precio de venta real)
+            # - COMPRA/BUY: usar `precio=X` (precio al que se compró)
+            price = None
+
+            # Para ventas y stop-loss: buscar `venta=` específicamente (es el precio de ejecución)
+            if etype in ("sell", "safeSell", "stopLoss"):
+                m_venta = re.search(r'venta[=:\s]*\$?([\d,]+(?:\.[\d]+)?)', rest, re.IGNORECASE)
+                if m_venta:
+                    price = float(m_venta.group(1).replace(",", ""))
+
+            # Para ventas/stops: buscar sellPrice= (formato antiguo del log Java)
+            if price is None and etype in ("sell", "safeSell", "stopLoss"):
+                m_sp = re.search(r'sellPrice[=:\s]*([\d,]+(?:\.[\d]+)?)', rest, re.IGNORECASE)
+                if m_sp:
+                    price = float(m_sp.group(1).replace(",", ""))
+
+            # Para todos: buscar precio= o primer $ del detalle
+            if price is None:
+                m_precio = re.search(r'precio[=:\s]*\$?([\d,]+(?:\.[\d]+)?)', rest, re.IGNORECASE)
+                if m_precio:
+                    price = float(m_precio.group(1).replace(",", ""))
+
+            # Último fallback: primer $ en el detalle
+            if price is None:
+                prices = _RX_MONEY.findall(rest)
+                if prices:
+                    price = float(prices[0].replace(",", ""))
+
+            if price is None:
                 continue
-            price = float(prices[0].replace(",", ""))
 
             # Extraer z-score y RSI del detalle completo del evento
             z_val = rsi_val = macd_val = None
@@ -246,20 +268,26 @@ def _read_events(since_days: int = 400) -> list[dict]:
 
     deduped: list[dict] = []
     for ev in out:
-        minute = ev["t"][:16]  # YYYY-MM-DDTHH:MM
-        # Buscar evento del mismo grupo en el mismo minuto
-        prev = next(
-            (e for e in deduped
-             if e["t"][:16] == minute and same_group(e["type"], ev["type"])),
-            None
-        )
+        # Fusionar solo si: mismo grupo Y ≤5 segundos de diferencia
+        # (no "mismo minuto" — dos operaciones distintas pueden ocurrir en el mismo minuto)
+        prev = None
+        for e in reversed(deduped[-10:]):  # solo buscar en los últimos 10
+            if not same_group(e["type"], ev["type"]):
+                continue
+            try:
+                diff = abs((datetime.fromisoformat(ev["t"]) - datetime.fromisoformat(e["t"])).total_seconds())
+                if diff <= 5:
+                    prev = e; break
+                elif diff > 60:
+                    break
+            except Exception:
+                continue
+
         if prev:
-            # Fusionar: z/rsi del que los tenga, precio del más reciente (suele ser el formateado)
             if ev.get("z") is not None and prev.get("z") is None:
                 prev["z"]    = ev["z"]
                 prev["rsi"]  = ev["rsi"]
                 prev["macd"] = ev["macd"]
-            # Actualizar precio si el nuevo tiene mayor precisión (más decimales significativos)
             if ev["p"] and abs(ev["p"] - prev["p"]) < 1.0:
                 prev["p"] = ev["p"]
         else:
@@ -368,10 +396,13 @@ def _get_total_deposited() -> float:
 
 def _parse_cycles_from_events() -> list[dict]:
     """
-    Extrae ciclos completos (compra→venta) directamente del event_log.txt.
-    Más fiable que _parse_real_trades() que buscaba formato BUY-SUCCESS/SELL-SUCCESS
-    que nunca se escribe en el log de eventos.
+    Extrae ciclos completos (compra→venta) del event_log.txt.
+    Resultado cacheado 15s para no parsear dos veces por request
+    (lo usan _compute_growth_metrics y _compute_stats).
     """
+    cached = _cache_get("cycles_from_events")
+    if cached is not None:
+        return cached
     events = _read_events(since_days=400)
     cycles = []
     last_buy: Optional[dict] = None
@@ -394,20 +425,46 @@ def _parse_cycles_from_events() -> list[dict]:
                     "type_sell": ev["type"],
                 })
             last_buy = None
-    return cycles
+    return _cache_set("cycles_from_events", cycles)
+
+
+def _read_v8_start() -> str:
+    """Fecha de inicio v8 — el punto cero oficial. Los datos previos (v7.x,
+    sin SAT GUARD) no cuentan para el crecimiento."""
+    try:
+        with open(os.path.join(DATA_DIR, "v8_baseline.txt")) as f:
+            for line in f:
+                if line.startswith("V8_START="):
+                    return line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    return "2026-06-10T17:32:24-06:00"
 
 
 def _compute_growth_metrics(current_price: Optional[float] = None) -> dict:
     """
-    ROI real de trading usando ciclos completos del event_log.
-    Crecimiento compuesto = producto de (1 + roi_i) para cada ciclo.
+    v8: TODO se mide en SATOSHIS desde el baseline v8.
+    Crecimiento = producto de (precio_venta / precio_recompra) por par,
+    contando solo eventos posteriores a V8_START.
     """
     cached = _cache_get("growth_metrics")
     if cached is not None:
         return cached
 
-    cycles = _parse_cycles_from_events()
-    now    = datetime.now(_MEXICO_TZ)
+    v8_start = _read_v8_start()
+    now      = datetime.now(_MEXICO_TZ)
+
+    # Pares venta→recompra (sat pairs) SOLO desde v8
+    events = [e for e in _read_events(since_days=400) if e["t"] >= v8_start]
+    pairs = []
+    last_sell = None
+    for ev in sorted(events, key=lambda x: x["t"]):
+        if ev["type"] in ("sell", "safeSell", "stopLoss"):
+            last_sell = ev
+        elif ev["type"] in ("buy", "safeBuy") and last_sell:
+            gain = (last_sell["p"] / ev["p"] - 1) * 100   # + = recompró más barato
+            pairs.append({"t": ev["t"], "gain": gain, "won": gain > 0})
+            last_sell = None
 
     windows = {
         "total": None,
@@ -418,27 +475,21 @@ def _compute_growth_metrics(current_price: Optional[float] = None) -> dict:
 
     result: dict = {}
     for label, cutoff in windows.items():
-        wc = [c for c in cycles if cutoff is None or c["t_sell"] >= cutoff.isoformat()]
-        n_cycles = len(wc)
-        n_wins   = sum(1 for c in wc if c["won"])
-
-        if n_cycles > 0:
-            # Crecimiento compuesto real
-            compound = 1.0
-            for c in wc:
-                compound *= (1 + c["roi_pct"] / 100)
-            growth_pct = (compound - 1) * 100
-            avg_roi    = sum(c["roi_pct"] for c in wc) / n_cycles
-        else:
-            growth_pct = avg_roi = 0.0
-
+        wp = [p for p in pairs if cutoff is None or p["t"] >= cutoff.isoformat()]
+        n = len(wp); wins = sum(1 for p in wp if p["won"])
+        compound = 1.0
+        for p in wp: compound *= (1 + p["gain"] / 100)
         result[label] = {
-            "growth_pct": round(growth_pct, 4),
-            "avg_roi":    round(avg_roi, 4),
-            "cycles":     n_cycles,
-            "wins":       n_wins,
-            "win_rate":   round(n_wins / n_cycles * 100, 1) if n_cycles > 0 else 0.0,
+            "growth_pct": round((compound - 1) * 100, 4),   # crecimiento en SATS
+            "avg_roi":    round(sum(p["gain"] for p in wp) / n, 4) if n else 0.0,
+            "cycles":     n,
+            "wins":       wins,
+            "win_rate":   round(wins / n * 100, 1) if n else 0.0,
         }
+    result["v8_start"] = v8_start
+    cycles = []  # equity curve usa pares v8 (abajo)
+    for p in pairs:
+        cycles.append({"t_sell": p["t"], "roi_pct": p["gain"]})
 
     # Equity curve: ROI compuesto acumulado por día usando los ciclos reales
     daily_roi: dict[str, float] = {}
@@ -455,6 +506,12 @@ def _compute_growth_metrics(current_price: Optional[float] = None) -> dict:
     result["equity_curve"]    = equity_curve
     result["xrp_held"]        = 0.0
     result["unrealized_usd"]  = 0.0
+
+    # v8: las 4 ventanas YA son sat-pairs desde V8_START — aliases de compatibilidad
+    result["sat_growth_pct"] = result["total"]["growth_pct"]
+    result["sat_pairs"]      = result["total"]["cycles"]
+    result["sat_win_rate"]   = result["total"]["win_rate"]
+
     return _cache_set("growth_metrics", result)
 
 
@@ -1602,7 +1659,7 @@ _DASHBOARD_HTML = """<!doctype html>
       <div>
         <div class="brand-name">Capital<span>Torreon</span></div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.3px">
-          BTC/USDT · MEXC · v7.5
+          BTC/USDT · MEXC · v8.0 — Sat Engine
         </div>
       </div>
     </div>
@@ -1851,7 +1908,7 @@ _DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div style="text-align:center;color:rgba(90,100,128,0.6);font-size:10px;padding:8px 0 24px;letter-spacing:.06em;text-transform:uppercase">
-    CapitalTorreon v7.5 &nbsp;·&nbsp; MEXC BTC/USDT &nbsp;·&nbsp; 0% Fee MAKER &nbsp;·&nbsp; Stop-Loss 2.0% &nbsp;·&nbsp; Actualiza cada 10s
+    CapitalTorreon v8.0 · Sat Engine &nbsp;·&nbsp; MEXC BTC/USDT &nbsp;·&nbsp; 0% Fee MAKER &nbsp;·&nbsp; Stop-Loss 2.0% &nbsp;·&nbsp; Actualiza cada 10s
   </div>
 
 </div>
@@ -1971,7 +2028,7 @@ function renderChart(prices, events) {
     traces.push({
       type:'scatter', mode:'markers+text',
       name: cfg.name,
-      x: evs.map(e => e.t),
+      x: evs.map(e => new Date(e.t).toISOString()),  // UTC: alinear con precios
       y: evs.map(e => e.p),
       text: priceLabels,
       textposition: cfg.text,
@@ -2414,7 +2471,7 @@ function renderLiveChart(pr, events) {
     traceEvents.push({
       type:'scatter', mode:'markers+text',
       name:'▲ Compra BTC',
-      x: buys.map(e=>e.t), y: buys.map(e=>e.p),
+      x: buys.map(e=>new Date(e.t).toISOString()), y: buys.map(e=>e.p),
       text: buys.map(e => `$${Number(e.p).toLocaleString('es-MX',{maximumFractionDigits:0})}`),
       textposition: 'bottom center',
       textfont: { size:9, color:'#4ade80', family:'Inter' },
@@ -2432,7 +2489,7 @@ function renderLiveChart(pr, events) {
     traceEvents.push({
       type:'scatter', mode:'markers+text',
       name:'▼ Venta BTC',
-      x: sells.map(e=>e.t), y: sells.map(e=>e.p),
+      x: sells.map(e=>new Date(e.t).toISOString()), y: sells.map(e=>e.p),
       text: sells.map(e => `$${Number(e.p).toLocaleString('es-MX',{maximumFractionDigits:0})}`),
       textposition: 'top center',
       textfont: { size:9, color:'#fb923c', family:'Inter' },
@@ -2450,7 +2507,7 @@ function renderLiveChart(pr, events) {
     traceEvents.push({
       type:'scatter', mode:'markers+text',
       name:'🛑 Stop Loss',
-      x: stops.map(e=>e.t), y: stops.map(e=>e.p),
+      x: stops.map(e=>new Date(e.t).toISOString()), y: stops.map(e=>e.p),
       text: stops.map(() => 'SL'),
       textposition: 'top center',
       textfont: { size:8, color:'#f87171', family:'Inter' },
@@ -2704,11 +2761,24 @@ async function refreshGrowth() {
     for (const p of periods) {
       const m = d[p.key];
       if (!m) continue;
-      const pct = m.growth_pct;
+
+      const pct     = m.growth_pct ?? 0;
+      const cycles  = m.cycles     ?? 0;
+      const wr      = m.win_rate   ?? 0;
+      const avgRoi  = m.avg_roi    ?? 0;
+
+      // v8: TODO en BITCOIN. growth_pct = crecimiento de sats (venta→recompra)
+      // medido desde el baseline v8. Los datos v7.x no cuentan.
       const el = $(p.valId);
-      el.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
-      el.className = 'kpi-value ' + (pct > 0 ? 'growth-up' : pct < 0 ? 'growth-down' : '');
-      $(p.subId).textContent = m.cycles + ' ciclos · ' + p.label;
+      el.textContent  = (pct >= 0 ? '+' : '') + pct.toFixed(3) + '% ₿';
+      el.className    = 'kpi-value ' + (pct > 0 ? 'growth-up' : pct < 0 ? 'growth-down' : '');
+
+      const sub = $(p.subId);
+      if (cycles === 0) {
+        sub.textContent = 'SATS · 0 pares · ' + p.label + ' · desde v8';
+      } else {
+        sub.textContent = `SATS · ${cycles} pares · ${wr.toFixed(0)}% bajó · ${avgRoi >= 0 ? '+' : ''}${avgRoi.toFixed(3)}%/par`;
+      }
     }
   } catch(e) { console.error('growth refresh error', e); }
 }
