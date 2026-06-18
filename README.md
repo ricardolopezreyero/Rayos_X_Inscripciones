@@ -221,6 +221,8 @@ Muestra en tiempo real el estado de uvicorn, tunnel, LaunchAgents y conectividad
 |---|---|---|
 | V8 MVP | May 2026 | Versión inicial publicada |
 | V8.1 | Jun 2026 | Fix IPv6 dual-stack, Worker CF, backups, registro CSV ventas |
+| V9 | Jun 2026 | Embudo en cascada, multi-selección, números en vivo, motor con 10 hallazgos |
+| V10 | Jun 2026 | Auditoría de fórmulas (8,640 escenarios), total recuperable sin doble conteo, tasas acotadas, arquitectura simplificada (sin proxy) |
 
 ---
 
