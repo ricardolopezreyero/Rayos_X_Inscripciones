@@ -2,11 +2,21 @@ thresholds:
   slow_first_response_minutes: 60
   critical_first_response_minutes: 360
   high_parallel_systems: 4
-  low_contact_rate: 0.45
-  low_appointment_rate_on_leads: 0.12
-  low_attendance_rate: 0.65
-  low_close_rate_on_attended: 0.22
+  low_contact_rate: 0.45            # contactados / leads
+  low_appointment_rate_contacted: 0.30   # citas / contactados (cascada)
+  low_appointment_rate_on_leads: 0.12    # citas / leads (compat)
+  low_attendance_rate: 0.65         # asistentes / citas
+  low_close_rate_on_attended: 0.30  # inscritos / asistentes
   low_lead_sufficiency_ratio: 1.0
+
+# Benchmarks SuperLeads (conservadores) para estimar impacto recuperable
+benchmarks:
+  contact_rate: 0.65
+  appointment_rate_contacted: 0.40
+  attendance_rate: 0.70
+  close_rate_attended: 0.45
+  after_hours_lead_share: 0.35      # % de leads que llegan fuera de horario oficina
+  slow_response_appointment_loss: 0.40   # pérdida de citas por responder >60 min
 
 score_weights:
   severity:
@@ -55,12 +65,24 @@ solution_mapping_by_root_cause:
   slow_response:
     primary: ia_conversacional
     prerequisite: crm_superleads
+  after_hours_leak:
+    primary: ia_conversacional
+    complementary: seguimiento_comercial
   fragmented_channels:
     primary: crm_superleads
     complementary: optimizacion_puntos_contacto
   weak_closing:
     primary: taller_inscripcion_ventas
     complementary: seguimiento_comercial
+  high_no_show:
+    primary: seguimiento_comercial
+    complementary: ia_conversacional
+  process_friction:
+    primary: optimizacion_puntos_contacto
+    complementary: crm_superleads
+  low_lead_quality:
+    primary: campanas_generacion_demanda
+    complementary: optimizacion_puntos_contacto
   low_volume:
     primary: campanas_generacion_demanda
     prerequisite: crm_superleads
