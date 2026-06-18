@@ -21,15 +21,15 @@
              value="{{ answers.get('daily_conversations','') }}"
              style="width:140px;font-size:1.2rem;font-weight:600;text-align:center;padding:12px 16px;"/>
 
-      <div id="leads-preview" style="display:{% if answers.get('daily_conversations') %}flex{% else %}none{% endif %};flex-direction:column;gap:4px;">
+      <div id="leads-preview" style="display:none;flex-direction:column;gap:4px;">
         <div style="display:flex;gap:14px;">
           <div style="text-align:center;">
-            <div style="font-size:1.25rem;font-weight:700;color:var(--blue);" id="leads_mes">{{ (answers.get('daily_conversations','0')|int * 30)|string if answers.get('daily_conversations') else '0' }}</div>
+            <div style="font-size:1.25rem;font-weight:700;color:var(--blue);" id="leads_mes">0</div>
             <div style="font-size:10px;color:var(--muted);margin-top:1px;">leads / mes</div>
           </div>
           <div style="width:1px;background:rgba(42,137,251,0.2);"></div>
           <div style="text-align:center;">
-            <div style="font-size:1.25rem;font-weight:700;color:var(--cyan);" id="leads_ano">{{ (answers.get('daily_conversations','0')|int * 365)|string if answers.get('daily_conversations') else '0' }}</div>
+            <div style="font-size:1.25rem;font-weight:700;color:var(--cyan);" id="leads_ano">0</div>
             <div style="font-size:10px;color:var(--muted);margin-top:1px;">leads / año</div>
           </div>
         </div>
@@ -49,45 +49,39 @@
              value="{{ answers.get('enrolled_total','') }}"
              style="width:140px;font-size:1.2rem;font-weight:600;text-align:center;padding:12px 16px;"/>
 
-      <div id="conv-preview" style="display:{% if answers.get('daily_conversations') and answers.get('enrolled_total') %}flex{% else %}none{% endif %};flex-direction:column;gap:2px;">
+      <div id="conv-preview" style="display:none;flex-direction:column;gap:2px;">
         <div style="font-size:11px;color:rgba(170,196,255,0.5);">Conversión real</div>
         <div>
-          <span style="font-size:1.3rem;font-weight:700;" id="conv-rate-val" class="{% if answers.get('daily_conversations') and answers.get('enrolled_total') %}conv-good{% endif %}">
-            {% if answers.get('daily_conversations') and answers.get('enrolled_total') %}
-              {{ ((answers.get('enrolled_total','0')|int / (answers.get('daily_conversations','1')|int * 365)) * 100)|round(0)|int }}%
-            {% else %}0%{% endif %}
-          </span>
+          <span style="font-size:1.3rem;font-weight:700;" id="conv-rate-val">0%</span>
           <span style="font-size:12px;color:var(--muted);margin-left:6px;">de leads a inscritos</span>
         </div>
         <div style="font-size:11.5px;color:rgba(170,196,255,0.4);">
-          De cada 100 que entran, <strong style="color:var(--text);" id="per-100-val">
-            {% if answers.get('daily_conversations') and answers.get('enrolled_total') %}
-              {{ ((answers.get('enrolled_total','0')|int / (answers.get('daily_conversations','1')|int * 365)) * 100)|round(0)|int }}
-            {% else %}0{% endif %}
-          </strong> terminan inscritos
+          De cada 100 que entran, <strong style="color:var(--text);" id="per-100-val">0</strong> terminan inscritos
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── 3. Etapas intermedias ─────────────────────────────────── -->
+  <!-- ── 3. Etapas intermedias — CASCADA ───────────────────────── -->
   <div style="background:rgba(11,31,105,0.4);border:1px solid rgba(42,137,251,0.18);border-radius:12px;padding:20px 22px;margin-bottom:28px;">
     <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">¿Qué pasa en el camino?</div>
     <p style="font-size:12px;color:rgba(170,196,255,0.45);margin-bottom:18px;line-height:1.55;">
-      De cada 100 leads que entran, ¿qué % llega a cada etapa? El sistema marcó donde suelen estar los colegios — ajusta si sabes que tu caso es diferente.
+      Cada etapa se calcula <strong style="color:var(--text);">sobre la anterior</strong> — así el embudo siempre es coherente.
+      El sistema marca dónde suelen estar los colegios; ajusta si tu caso es distinto.
     </p>
 
     {% set pct_options = [10,20,30,40,50,60,70,80,90,100] %}
 
-    <!-- Contactados -->
+    <!-- Contactados: % de LEADS -->
     <div style="margin-bottom:18px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
         <span style="font-size:13px;font-weight:600;color:var(--text);">Contactados</span>
-        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— leads que reciben una respuesta efectiva</span>
+        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— de los <strong>leads</strong>, ¿qué % recibe respuesta efectiva?</span>
+        <span class="stage-count" id="cnt-contact"></span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;">
         {% for p in pct_options %}
-        <label class="pct-chip {% if answers.get('contact_pct', '60') == p|string %}selected{% endif %}" data-field="contact_pct">
+        <label class="pct-chip {% if answers.get('contact_pct', '60') == p|string %}selected{% endif %}">
           <input type="radio" name="contact_pct" value="{{ p }}"
                  {% if answers.get('contact_pct', '60') == p|string %}checked{% endif %}/>
           {{ p }}%
@@ -96,49 +90,52 @@
       </div>
     </div>
 
-    <!-- Citas -->
+    <!-- Citas: % de CONTACTADOS -->
     <div style="margin-bottom:18px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
         <span style="font-size:13px;font-weight:600;color:var(--text);">Citas agendadas</span>
-        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— leads que llegaron a una entrevista o visita</span>
+        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— de los <strong>contactados</strong>, ¿qué % agenda una cita?</span>
+        <span class="stage-count" id="cnt-appt"></span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;">
         {% for p in pct_options %}
-        <label class="pct-chip {% if answers.get('appointment_pct', '30') == p|string %}selected{% endif %}" data-field="appointment_pct">
+        <label class="pct-chip {% if answers.get('appointment_pct', '40') == p|string %}selected{% endif %}">
           <input type="radio" name="appointment_pct" value="{{ p }}"
-                 {% if answers.get('appointment_pct', '30') == p|string %}checked{% endif %}/>
+                 {% if answers.get('appointment_pct', '40') == p|string %}checked{% endif %}/>
           {{ p }}%
         </label>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Asistentes -->
+    <!-- Asistencia: % de CITAS -->
     <div style="margin-bottom:18px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <span style="font-size:13px;font-weight:600;color:var(--text);">Asistentes</span>
-        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— leads que efectivamente asistieron</span>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:var(--text);">Asistencia</span>
+        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— de las <strong>citas</strong>, ¿qué % sí se presenta?</span>
+        <span class="stage-count" id="cnt-att"></span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;">
         {% for p in pct_options %}
-        <label class="pct-chip {% if answers.get('attendance_pct', '20') == p|string %}selected{% endif %}" data-field="attendance_pct">
+        <label class="pct-chip {% if answers.get('attendance_pct', '70') == p|string %}selected{% endif %}">
           <input type="radio" name="attendance_pct" value="{{ p }}"
-                 {% if answers.get('attendance_pct', '20') == p|string %}checked{% endif %}/>
+                 {% if answers.get('attendance_pct', '70') == p|string %}checked{% endif %}/>
           {{ p }}%
         </label>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Inscritos (cierre) -->
+    <!-- Cierre: % de ASISTENTES -->
     <div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <span style="font-size:13px;font-weight:600;color:var(--text);">Inscritos</span>
-        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— asistentes que completan la inscripción</span>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:var(--text);">Cierre</span>
+        <span style="font-size:10.5px;color:rgba(170,196,255,0.45);">— de los <strong>asistentes</strong>, ¿qué % se inscribe?</span>
+        <span class="stage-count" id="cnt-enr"></span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;">
         {% for p in pct_options %}
-        <label class="pct-chip {% if answers.get('close_pct', '50') == p|string %}selected{% endif %}" data-field="close_pct">
+        <label class="pct-chip {% if answers.get('close_pct', '50') == p|string %}selected{% endif %}">
           <input type="radio" name="close_pct" value="{{ p }}"
                  {% if answers.get('close_pct', '50') == p|string %}checked{% endif %}/>
           {{ p }}%
@@ -147,17 +144,17 @@
       </div>
     </div>
 
-    <!-- Live funnel preview inside the card -->
+    <!-- Live funnel preview -->
     <div id="funnel-mini" style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(42,137,251,0.12);">
-      <div style="font-size:10px;color:var(--muted);margin-bottom:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Estimación resultante</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Tu embudo estimado</div>
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0;">
         {% for stage_id, stage_name, clr in [
           ('mini-leads','Leads','var(--blue)'),
           ('mini-contact','Contactados','var(--text)'),
           ('mini-appt','Citas','var(--text)'),
           ('mini-att','Asistentes','var(--text)'),
-          ('mini-enr','Inscritos','var(--accent)'),
-          ('mini-conv','Tasa conversión','var(--cyan)')
+          ('mini-enr','Inscritos est.','var(--accent)'),
+          ('mini-conv','Conversión','var(--cyan)')
         ] %}
         <div style="text-align:center;{% if not loop.last %}border-right:1px solid rgba(42,137,251,0.12);{% endif %}padding:10px 6px;">
           <div style="font-size:9px;color:var(--muted);margin-bottom:6px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">{{ stage_name }}</div>
@@ -166,6 +163,36 @@
         {% endfor %}
       </div>
     </div>
+
+    <!-- Coherencia: estimado vs real -->
+    <div id="coherence-box" style="display:none;margin-top:14px;border-radius:10px;padding:12px 16px;border:1px solid;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="coherence-icon" style="font-size:14px;"></span>
+        <span id="coherence-text" style="font-size:12.5px;line-height:1.55;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. Dinero sobre la mesa (en vivo) ─────────────────────── -->
+  <div id="money-box" style="display:none;background:linear-gradient(135deg,rgba(86,239,159,0.07),rgba(29,178,252,0.05));border:1px solid rgba(86,239,159,0.25);border-radius:12px;padding:20px 22px;margin-bottom:28px;">
+    <div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">⚡ Lo que está en juego</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+      <div style="text-align:center;">
+        <div id="money-lost" style="font-size:1.5rem;font-weight:700;color:#ff8f8f;line-height:1.1;">—</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.4;">prospectos NO inscritos<br/>al año</div>
+      </div>
+      <div style="text-align:center;border-left:1px solid rgba(86,239,159,0.15);border-right:1px solid rgba(86,239,159,0.15);">
+        <div id="money-recover" style="font-size:1.5rem;font-weight:700;color:var(--accent);line-height:1.1;">—</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.4;">alumnos extra si recuperas<br/>solo 1 de cada 10</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="money-value" style="font-size:1.5rem;font-weight:700;color:var(--cyan);line-height:1.1;">—</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.4;" id="money-value-label">en colegiaturas<br/>anuales</div>
+      </div>
+    </div>
+    <p style="font-size:10px;color:rgba(170,196,255,0.35);margin-top:12px;text-align:center;font-style:italic;">
+      Escenario ilustrativo con tus propios números — no es una proyección garantizada.
+    </p>
   </div>
 
   <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -207,166 +234,224 @@
   border-color: rgba(86,239,159,0.55);
   box-shadow: 0 0 0 2px rgba(86,239,159,0.15);
 }
+.stage-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cyan);
+  background: rgba(29,178,252,0.1);
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-left: auto;
+}
 </style>
 
 <script>
-// ── Number formatter: comma thousands, apostrophe millions, no decimals ──
+// ── Ticket promedio (viene del paso 1, para los números en vivo) ──────
+const AVG_TICKET = parseInt('{{ answers.get("average_ticket","0") }}') || 0;
+
+// ── Formato de número ──────────────────────────────────────────────────
 function fmtNum(n) {
   n = Math.round(n);
   if (isNaN(n) || n === null) return '—';
-  if (n >= 1000000) {
-    const m = Math.floor(n / 1000000);
-    const rest = n % 1000000;
-    const thou = String(Math.floor(rest / 1000)).padStart(3, '0');
-    const units = String(rest % 1000).padStart(3, '0');
-    return m + "'" + thou + ',' + units;
-  }
-  if (n >= 1000) {
-    const t = Math.floor(n / 1000);
-    const r = String(n % 1000).padStart(3, '0');
-    return t + ',' + r;
-  }
-  return String(n);
+  return n.toLocaleString('es-MX');
+}
+function fmtMoney(n) {
+  n = Math.round(n);
+  if (isNaN(n) || n <= 0) return '—';
+  if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + ' M';
+  return '$' + n.toLocaleString('es-MX');
 }
 
-// ── Suggestion logic based on overall conversion rate ─────────────────
-function getSuggestions(enroll_rate_pct) {
-  // enroll_rate_pct = enrolled / leads_year * 100
-  if (enroll_rate_pct <= 0) return { contact: 60, appt: 30, att: 20, close: 50 };
-  if (enroll_rate_pct < 3)  return { contact: 50, appt: 20, att: 15, close: 30 };
-  if (enroll_rate_pct < 6)  return { contact: 60, appt: 30, att: 20, close: 50 };
-  if (enroll_rate_pct < 12) return { contact: 70, appt: 40, att: 30, close: 60 };
-  return                           { contact: 80, appt: 50, att: 40, close: 70 };
-}
-
-function roundTo10(n) {
-  return Math.round(Math.round(n / 10) * 10);
-}
-
-// ── DOM refs ─────────────────────────────────────────────────────────
+// ── DOM refs ───────────────────────────────────────────────────────────
 const convInp  = document.getElementById('daily_conv');
 const enrInp   = document.getElementById('enrolled_inp');
-const leadsPreview  = document.getElementById('leads-preview');
-const convPreview   = document.getElementById('conv-preview');
-const convRateVal   = document.getElementById('conv-rate-val');
-const per100Val     = document.getElementById('per-100-val');
-const leadsAnoEl    = document.getElementById('leads_ano');
-const leadesMesEl   = document.getElementById('leads_mes');
-const funnelMini    = document.getElementById('funnel-mini');
 
-function getLeadsYear() {
-  const v = parseInt(convInp.value) || 0;
-  return v * 365;
-}
-function getEnrolled() {
-  return parseInt(enrInp.value) || 0;
-}
+function getLeadsYear() { return (parseInt(convInp.value) || 0) * 365; }
+function getEnrolledReal() { return parseInt(enrInp.value) || 0; }
 function getPct(name) {
   const el = document.querySelector(`input[name="${name}"]:checked`);
   return el ? parseInt(el.value) : 0;
 }
 
+// ── Cascada: cada etapa sobre la anterior ──────────────────────────────
+function computeCascade() {
+  const leads = getLeadsYear();
+  const cp = getPct('contact_pct');
+  const ap = getPct('appointment_pct');
+  const tp = getPct('attendance_pct');
+  const ep = getPct('close_pct');
+  const contacted    = Math.round(leads * cp / 100);
+  const appointments = Math.round(contacted * ap / 100);
+  const attended     = Math.round(appointments * tp / 100);
+  const enrolledEst  = Math.round(attended * ep / 100);
+  return { leads, contacted, appointments, attended, enrolledEst };
+}
+
+// ── Sugerencias (benchmark cascada por conversión global) ─────────────
+function getSuggestions(rate) {
+  if (rate <= 0) return { contact: 60, appt: 40, att: 70, close: 50 };
+  if (rate < 3)  return { contact: 40, appt: 30, att: 60, close: 30 };
+  if (rate < 6)  return { contact: 50, appt: 40, att: 70, close: 40 };
+  if (rate < 12) return { contact: 60, appt: 40, att: 70, close: 50 };
+  return                { contact: 70, appt: 50, att: 80, close: 60 };
+}
+
 function updateLeadsPreview() {
   const v = parseInt(convInp.value) || 0;
+  const box = document.getElementById('leads-preview');
   if (v > 0) {
-    leadsPreview.style.display = 'flex';
-    leadesMesEl.textContent = fmtNum(v * 30);
-    leadsAnoEl.textContent  = fmtNum(v * 365);
+    box.style.display = 'flex';
+    document.getElementById('leads_mes').textContent = fmtNum(v * 30);
+    document.getElementById('leads_ano').textContent = fmtNum(v * 365);
   } else {
-    leadsPreview.style.display = 'none';
+    box.style.display = 'none';
   }
 }
 
 function updateConvPreview() {
   const leads = getLeadsYear();
-  const enr   = getEnrolled();
+  const enr   = getEnrolledReal();
+  const box   = document.getElementById('conv-preview');
+  const val   = document.getElementById('conv-rate-val');
   if (leads > 0 && enr > 0) {
-    const rate = (enr / leads * 100);
-    convPreview.style.display = 'flex';
-    convRateVal.textContent   = Math.round(rate) + '%';
-    per100Val.textContent     = Math.round(rate);
-    // Color
-    convRateVal.className = rate >= 10 ? 'conv-good' : rate >= 5 ? 'conv-warn' : 'conv-danger';
-    convRateVal.style.fontSize = '1.3rem';
-    convRateVal.style.fontWeight = '700';
+    const rate = enr / leads * 100;
+    box.style.display = 'flex';
+    val.textContent = (rate < 10 ? rate.toFixed(1) : Math.round(rate)) + '%';
+    document.getElementById('per-100-val').textContent = Math.max(1, Math.round(rate));
+    val.style.color = rate >= 10 ? 'var(--accent)' : rate >= 5 ? '#ffd93d' : '#ff8f8f';
   } else {
-    convPreview.style.display = 'none';
+    box.style.display = 'none';
   }
 }
 
 function applySuggestions() {
   const leads = getLeadsYear();
-  const enr   = getEnrolled();
+  const enr   = getEnrolledReal();
   if (leads <= 0 || enr <= 0) return;
-
-  const rate = enr / leads * 100;
-  const s    = getSuggestions(rate);
-
-  const fieldMap = { contact_pct: s.contact, appointment_pct: s.appt, attendance_pct: s.att, close_pct: s.close };
-  Object.entries(fieldMap).forEach(([field, key]) => {
+  const s = getSuggestions(enr / leads * 100);
+  const map = { contact_pct: s.contact, appointment_pct: s.appt, attendance_pct: s.att, close_pct: s.close };
+  Object.entries(map).forEach(([field, sug]) => {
     document.querySelectorAll(`input[name="${field}"]`).forEach(inp => {
       const chip = inp.closest('.pct-chip');
       chip.classList.remove('suggested-mark');
-      if (parseInt(inp.value) === key) chip.classList.add('suggested-mark');
+      if (parseInt(inp.value) === sug) chip.classList.add('suggested-mark');
     });
   });
 }
 
 function updateFunnelMini() {
-  const leads = getLeadsYear();
-  const enr   = getEnrolled();
-  if (leads <= 0) {
-    ['mini-leads','mini-contact','mini-appt','mini-att','mini-enr'].forEach(id => {
+  const c = computeCascade();
+  if (c.leads <= 0) {
+    ['mini-leads','mini-contact','mini-appt','mini-att','mini-enr','mini-conv'].forEach(id => {
       document.getElementById(id).textContent = '—';
+    });
+    ['cnt-contact','cnt-appt','cnt-att','cnt-enr'].forEach(id => {
+      document.getElementById(id).textContent = '';
     });
     return;
   }
+  document.getElementById('mini-leads').textContent   = fmtNum(c.leads);
+  document.getElementById('mini-contact').textContent = fmtNum(c.contacted);
+  document.getElementById('mini-appt').textContent    = fmtNum(c.appointments);
+  document.getElementById('mini-att').textContent     = fmtNum(c.attended);
+  document.getElementById('mini-enr').textContent     = fmtNum(c.enrolledEst);
+  const conv = c.leads > 0 ? (c.enrolledEst / c.leads * 100) : 0;
+  document.getElementById('mini-conv').textContent = (conv < 10 ? conv.toFixed(1) : Math.round(conv)) + '%';
 
-  const cp  = getPct('contact_pct');
-  const ap  = getPct('appointment_pct');
-  const tp  = getPct('attendance_pct');
-  const ep  = getPct('close_pct');
-
-  const att_n = Math.round(leads * tp / 100);
-  const enr_est = ep > 0 ? Math.round(att_n * ep / 100) : enr;
-
-  const conv_pct = leads > 0 ? Math.round(enr_est / leads * 100) : 0;
-  document.getElementById('mini-leads').textContent   = fmtNum(leads);
-  document.getElementById('mini-contact').textContent = fmtNum(leads * cp / 100);
-  document.getElementById('mini-appt').textContent    = fmtNum(leads * ap / 100);
-  document.getElementById('mini-att').textContent     = fmtNum(att_n);
-  document.getElementById('mini-enr').textContent     = fmtNum(enr_est);
-  document.getElementById('mini-conv').textContent    = conv_pct + '%';
+  // Contadores junto a cada etapa
+  document.getElementById('cnt-contact').textContent = '≈ ' + fmtNum(c.contacted);
+  document.getElementById('cnt-appt').textContent    = '≈ ' + fmtNum(c.appointments);
+  document.getElementById('cnt-att').textContent     = '≈ ' + fmtNum(c.attended);
+  document.getElementById('cnt-enr').textContent     = '≈ ' + fmtNum(c.enrolledEst);
 }
 
-// ── Chip click logic ──────────────────────────────────────────────────
+// ── Coherencia: estimado vs inscritos reales ──────────────────────────
+function updateCoherence() {
+  const box  = document.getElementById('coherence-box');
+  const icon = document.getElementById('coherence-icon');
+  const text = document.getElementById('coherence-text');
+  const c    = computeCascade();
+  const real = getEnrolledReal();
+
+  if (c.leads <= 0 || real <= 0 || c.enrolledEst <= 0) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  const ratio = real / c.enrolledEst;
+  const impliedClose = c.attended > 0 ? Math.round(real / c.attended * 100) : null;
+
+  if (ratio >= 0.75 && ratio <= 1.3) {
+    box.style.borderColor = 'rgba(86,239,159,0.3)';
+    box.style.background  = 'rgba(86,239,159,0.06)';
+    icon.textContent = '✓';
+    icon.style.color = 'var(--accent)';
+    text.style.color = 'var(--text)';
+    text.innerHTML = `Tus porcentajes son <strong>coherentes</strong> con los ${fmtNum(real)} inscritos reales (estimación: ${fmtNum(c.enrolledEst)}).`;
+  } else {
+    box.style.borderColor = 'rgba(255,217,61,0.35)';
+    box.style.background  = 'rgba(255,217,61,0.06)';
+    icon.textContent = '≠';
+    icon.style.color = '#ffd93d';
+    text.style.color = 'var(--text)';
+    const dir = ratio < 1 ? 'menos' : 'más';
+    text.innerHTML = `Con tus porcentajes el embudo daría <strong>${fmtNum(c.enrolledEst)} inscritos</strong>, pero reportaste <strong>${fmtNum(real)}</strong> (${dir} de lo estimado).`
+      + (impliedClose !== null && impliedClose <= 100 ? ` Con tus números reales, el cierre efectivo es ≈ <strong>${impliedClose}%</strong> de los asistentes — ajusta los chips si lo ves distinto.` : ' Revisa los porcentajes para acercar la estimación a tu realidad.');
+  }
+}
+
+// ── Dinero sobre la mesa ────────────────────────────────────────────────
+function updateMoney() {
+  const box  = document.getElementById('money-box');
+  const c    = computeCascade();
+  const real = getEnrolledReal();
+  const enrolled = real > 0 ? real : c.enrolledEst;
+
+  if (c.leads <= 0 || enrolled <= 0) {
+    box.style.display = 'none';
+    return;
+  }
+  const lost = Math.max(0, c.leads - enrolled);
+  const recoverable = Math.round(lost * 0.10);
+
+  box.style.display = 'block';
+  document.getElementById('money-lost').textContent    = fmtNum(lost);
+  document.getElementById('money-recover').textContent = '+' + fmtNum(recoverable);
+
+  if (AVG_TICKET > 0 && recoverable > 0) {
+    document.getElementById('money-value').textContent = fmtMoney(recoverable * AVG_TICKET);
+    document.getElementById('money-value-label').innerHTML = 'en colegiaturas<br/>anuales';
+  } else {
+    document.getElementById('money-value').textContent = '—';
+    document.getElementById('money-value-label').innerHTML = 'agrega la colegiatura<br/>en el paso 1';
+  }
+}
+
+function refreshAll() {
+  updateLeadsPreview();
+  updateConvPreview();
+  updateFunnelMini();
+  updateCoherence();
+  updateMoney();
+  applySuggestions();
+}
+
+// ── Chip click ──────────────────────────────────────────────────────────
 document.querySelectorAll('.pct-chip').forEach(chip => {
   const inp = chip.querySelector('input');
   chip.addEventListener('click', () => {
-    const name = inp.name;
-    document.querySelectorAll(`input[name="${name}"]`).forEach(i => {
+    document.querySelectorAll(`input[name="${inp.name}"]`).forEach(i => {
       i.closest('.pct-chip').classList.remove('selected');
     });
     chip.classList.add('selected');
     inp.checked = true;
-    updateFunnelMini();
+    refreshAll();
   });
 });
 
-// ── Input listeners ───────────────────────────────────────────────────
-convInp.addEventListener('input', () => {
-  updateLeadsPreview();
-  updateConvPreview();
-  updateFunnelMini();
-});
-enrInp.addEventListener('input', () => {
-  updateConvPreview();
-  updateFunnelMini();
-});
+convInp.addEventListener('input', refreshAll);
+enrInp.addEventListener('input', refreshAll);
 
-// ── Init ──────────────────────────────────────────────────────────────
-updateLeadsPreview();
-updateConvPreview();
-updateFunnelMini();
+refreshAll();
 </script>
 {% endblock %}
