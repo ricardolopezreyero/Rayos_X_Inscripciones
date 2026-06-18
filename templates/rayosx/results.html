@@ -147,6 +147,22 @@
           </div>
           {% endif %}
         </div>
+
+        <!-- ══ Franja estrella: total recuperable (sin doble conteo) ══ -->
+        {% if total_recoverable and total_recoverable.get('students') %}
+        <div style="margin-top:18px;background:linear-gradient(135deg,rgba(86,239,159,0.1),rgba(29,178,252,0.06));border:1px solid rgba(86,239,159,0.3);border-radius:13px;padding:20px 24px;">
+          <div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">⚡ El techo realista de tu sistema actual</div>
+          <p style="color:var(--text);font-size:15px;line-height:1.7;margin:0;">
+            Llevando cada etapa del embudo al estándar SuperLeads, tu sistema podría sumar
+            <strong style="color:var(--accent);font-size:1.15em;">≈ {{ '{:,}'.format(total_recoverable.get('students')) }} alumnos más al año</strong>{% if total_recoverable.get('money') %}
+            (<strong style="color:var(--accent);">${{ '{:,.0f}'.format(total_recoverable.get('money')) }}</strong> en colegiaturas){% endif %}
+            — con los mismos leads que ya entran hoy.
+          </p>
+          <p style="font-size:10.5px;color:rgba(170,196,255,0.4);margin:8px 0 0;font-style:italic;">
+            Estimación conservadora con tus propios números, acotada por tu cupo disponible. No es una proyección garantizada.
+          </p>
+        </div>
+        {% endif %}
       </div>
 
       <!-- ══ Funnel visual ══════════════════════════════════ -->
