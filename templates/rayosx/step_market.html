@@ -10,9 +10,10 @@
   <div style="margin-bottom:22px;">
     <label class="field-label">Objeciones más frecuentes de los prospectos</label>
     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+      {% set obj_selected = answers.get('objections_list','').split(' | ') %}
       {% for val in ['El precio es alto','Está muy lejos','No conocen la institución','Prefieren otra opción','Trámites complicados','Dudas sobre calidad académica','Falta de becas','Problemas de calendario'] %}
-      <label class="chip {% if val in (answers.get('top_2_objections','').split('|')) %}selected{% endif %}">
-        <input type="checkbox" name="obj_{{ loop.index }}" value="{{ val }}" {% if val in (answers.get('top_2_objections','').split('|')) %}checked{% endif %}/>
+      <label class="chip {% if val in obj_selected %}selected{% endif %}">
+        <input type="checkbox" name="obj_{{ loop.index }}" value="{{ val }}" {% if val in obj_selected %}checked{% endif %}/>
         {{ val }}
       </label>
       {% endfor %}
@@ -21,11 +22,12 @@
   </div>
 
   <div style="margin-bottom:22px;">
-    <label class="field-label">¿Por qué razón principal pierden prospectos interesados?</label>
+    <label class="field-label">¿Por qué razones pierden prospectos interesados? <span style="color:rgba(170,196,255,0.4);font-weight:400;font-size:11px;">(marca todas las que apliquen)</span></label>
     <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% set loss_selected = answers.get('loss_reasons', answers.get('primary_loss_reason','')).split(',') %}
       {% for val, label in [('precio','Por precio'),('competencia','Se fue a la competencia'),('falta_seguimiento','Falta de seguimiento'),('proceso_complejo','Proceso muy complicado'),('no_convencio','No convenció la propuesta'),('tiempo','Se quedó sin tiempo'),('no_sabe','No lo sabemos')] %}
-      <label class="chip {% if answers.get('primary_loss_reason')==val %}selected{% endif %}">
-        <input type="radio" name="primary_loss_reason" value="{{ val }}" {% if answers.get('primary_loss_reason')==val %}checked{% endif %}/>
+      <label class="chip {% if val in loss_selected %}selected{% endif %}">
+        <input type="checkbox" name="loss_{{ loop.index }}" value="{{ val }}" {% if val in loss_selected %}checked{% endif %}/>
         {{ label }}
       </label>
       {% endfor %}
