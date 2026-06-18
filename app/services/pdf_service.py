@@ -16,7 +16,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch, cm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable, KeepTogether, PageBreak
+    HRFlowable, KeepTogether, PageBreak, Flowable
 )
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
@@ -249,6 +249,266 @@ def _conv_color(rate):
     return C_RED
 
 
+# ── Custom Flowables ───────────────────────────────────────────────────────────
+
+def _draw_cover(canvas, doc, institution, city, inst_type, short_code, analyzed_at):
+    """Draw the full-page cover on page 1 using the canvas directly."""
+    W, H = letter
+
+    canvas.saveState()
+
+    # ── Full background ────────────────────────────────────────────────
+    canvas.setFillColor(colors.HexColor("#05103a"))
+    canvas.rect(0, 0, W, H, fill=1, stroke=0)
+
+    # ── Top strip ─────────────────────────────────────────────────────
+    STRIP_H = 70  # Más alto para dar más presencia al logo
+    canvas.setFillColor(colors.HexColor("#071540"))
+    canvas.rect(0, H - STRIP_H, W, STRIP_H, fill=1, stroke=0)
+    # Línea de acento cyan debajo del strip
+    canvas.setStrokeColor(colors.HexColor("#1db2fc"))
+    canvas.setLineWidth(1.5)
+    canvas.line(0, H - STRIP_H, W, H - STRIP_H)
+
+    # Logo grande en el strip superior
+    logo_h = 44  # Logo mucho más grande
+    logo_y = H - STRIP_H + (STRIP_H - logo_h) / 2
+    logo_img = _get_logo()
+    if logo_img:
+        canvas.drawImage(logo_img, MARGIN, logo_y, width=logo_h, height=logo_h, mask="auto")
+        text_x = MARGIN + logo_h + 10
+    else:
+        text_x = MARGIN
+
+    # "SUPERLEADS" grande y prominente
+    canvas.setFont("Helvetica-Bold", 18)
+    canvas.setFillColor(colors.HexColor("#1db2fc"))
+    canvas.drawString(text_x, logo_y + 22, "SUPERLEADS")
+    canvas.setFont("Helvetica", 9)
+    canvas.setFillColor(colors.HexColor("#56ef9f"))
+    canvas.drawString(text_x, logo_y + 9, "RAYOS X INSCRIPCIONES")
+
+    # ── Subtle diagonal accent lines (decorative) ──────────────────────
+    canvas.setStrokeColor(colors.HexColor("#0d2260"))
+    canvas.setLineWidth(0.5)
+    for xi in range(0, int(W) + 60, 60):
+        canvas.line(xi, H - STRIP_H, xi + 120, H - STRIP_H - 200)
+
+    # ── Center vertical block ──────────────────────────────────────────
+    center_y = H / 2 + 30
+
+    # "DIAGNOSTICO DE INSCRIPCIONES" — label
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.HexColor("#56ef9f"))
+    label = "D I A G N O S T I C O   D E   I N S C R I P C I O N E S"
+    canvas.drawCentredString(W / 2, center_y + 90, label)
+
+    # Institution name — up to 2 lines, large
+    inst_name = institution or "Institucion"
+    if len(inst_name) > 28:
+        name_size = 28
+    elif len(inst_name) > 20:
+        name_size = 32
+    else:
+        name_size = 38
+
+    canvas.setFont("Helvetica-Bold", name_size)
+    canvas.setFillColor(colors.white)
+    # Simple word-wrap: split at ~28 chars
+    words = inst_name.split()
+    lines = []
+    cur_line = []
+    for w in words:
+        test = " ".join(cur_line + [w])
+        if len(test) > 28 and cur_line:
+            lines.append(" ".join(cur_line))
+            cur_line = [w]
+        else:
+            cur_line.append(w)
+    if cur_line:
+        lines.append(" ".join(cur_line))
+
+    line_h = name_size * 1.25
+    name_block_h = len(lines) * line_h
+    name_top = center_y + 55
+    for i, ln in enumerate(lines):
+        canvas.drawCentredString(W / 2, name_top - i * line_h, ln)
+
+    # City · Type
+    city_parts = []
+    if city:
+        city_parts.append(city)
+    if inst_type:
+        city_parts.append(inst_type.replace("_", " ").title())
+    if city_parts:
+        canvas.setFont("Helvetica", 13)
+        canvas.setFillColor(colors.HexColor("#aac4ff"))
+        canvas.drawCentredString(W / 2, name_top - name_block_h - 10, "  .  ".join(city_parts))
+
+    # Green accent line
+    line_y = name_top - name_block_h - 28
+    canvas.setStrokeColor(colors.HexColor("#56ef9f"))
+    canvas.setLineWidth(1.5)
+    canvas.line(W / 2 - 120, line_y, W / 2 + 120, line_y)
+
+    # Date · Session · Confidencial
+    fecha_str = (analyzed_at or datetime.utcnow()).strftime("%d de %B de %Y").capitalize()
+    meta_parts = [fecha_str, f"Sesion {short_code}", "Confidencial"]
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.HexColor("#3a5090"))
+    canvas.drawCentredString(W / 2, line_y - 18, "  .  ".join(meta_parts))
+
+    # ── Bottom strip ───────────────────────────────────────────────────
+    BOT_H = 50
+    canvas.setFillColor(colors.HexColor("#0a1e60"))
+    canvas.rect(0, 0, W, BOT_H, fill=1, stroke=0)
+
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.HexColor("#3a5090"))
+    canvas.drawString(MARGIN, BOT_H / 2 + 2, "Preparado por SuperLeads")
+    canvas.drawCentredString(W / 2, BOT_H / 2 + 2, "Sistema de Inscripciones Educativas")
+    canvas.drawRightString(W - MARGIN, BOT_H / 2 + 2, "superleads.mx")
+
+    canvas.restoreState()
+
+
+class FunnelBar(Flowable):
+    """Dibuja el funnel como barras horizontales proporcionales."""
+
+    def __init__(self, stages, width, height_per_bar=34, gap=8):
+        """
+        stages = [(label, value, pct_prev, pct_color), ...]
+          - label: str
+          - value: int
+          - pct_prev: float|None  (conversion from previous stage)
+          - pct_color: color object
+        width: total flowable width
+        """
+        super().__init__()
+        self.stages = stages
+        self.bar_width = width
+        self.height_per_bar = height_per_bar
+        self.gap = gap
+        self._total_h = len(stages) * (height_per_bar + gap)
+
+    def wrap(self, availWidth, availHeight):
+        return (self.bar_width, self._total_h)
+
+    def draw(self):
+        c = self.canv
+        if not self.stages:
+            return
+
+        max_val = max((s[1] for s in self.stages if s[1]), default=1) or 1
+        LABEL_W = 110   # left column for stage label
+        PCT_W   = 60    # right column for conversion %
+        BAR_ZONE = self.bar_width - LABEL_W - PCT_W - 8
+
+        y = self._total_h - self.height_per_bar
+
+        for i, (label, value, pct_prev, pct_color) in enumerate(self.stages):
+            val = value or 0
+            bar_w = BAR_ZONE * (val / max_val) if max_val else 0
+
+            # Bar background (dim track)
+            c.setFillColor(colors.HexColor("#0b1f69"))
+            c.roundRect(LABEL_W, y + 4, BAR_ZONE, self.height_per_bar - 8, 4, fill=1, stroke=0)
+
+            # Gradient feel: use two shades based on position
+            t = i / max(len(self.stages) - 1, 1)
+            # interpolate from C_BLUE (#2a89fb) to C_ACCENT (#56ef9f)
+            r1, g1, b1 = 0x2a/255, 0x89/255, 0xfb/255
+            r2, g2, b2 = 0x56/255, 0xef/255, 0x9f/255
+            bar_color = colors.Color(r1 + (r2-r1)*t, g1 + (g2-g1)*t, b1 + (b2-b1)*t)
+
+            # Filled bar
+            if bar_w > 8:
+                c.setFillColor(bar_color)
+                c.roundRect(LABEL_W, y + 4, bar_w, self.height_per_bar - 8, 4, fill=1, stroke=0)
+
+            # Stage label (left)
+            c.setFont("Helvetica", 8.5)
+            c.setFillColor(colors.HexColor("#aac4ff"))
+            c.drawRightString(LABEL_W - 6, y + self.height_per_bar / 2 - 4, label)
+
+            # Value inside bar (white, bold)
+            if val > 0:
+                c.setFont("Helvetica-Bold", 10)
+                c.setFillColor(colors.white)
+                val_x = LABEL_W + min(bar_w - 4, 12) + 4
+                if bar_w < 30:
+                    # put it to the right of bar
+                    c.setFillColor(colors.HexColor("#edf4ff"))
+                    val_x = LABEL_W + bar_w + 6
+                c.drawString(val_x, y + self.height_per_bar / 2 - 4, f"{val:,}")
+
+            # Conversion % (right side)
+            if pct_prev is not None:
+                pct_str = f"{pct_prev*100:.0f}%"
+                c.setFont("Helvetica-Bold", 9)
+                c.setFillColor(pct_color)
+                c.drawString(LABEL_W + BAR_ZONE + 10, y + self.height_per_bar / 2 - 4, pct_str)
+            elif i == 0:
+                c.setFont("Helvetica", 7.5)
+                c.setFillColor(colors.HexColor("#3a5090"))
+                c.drawString(LABEL_W + BAR_ZONE + 10, y + self.height_per_bar / 2 - 4, "100%")
+
+            y -= (self.height_per_bar + self.gap)
+
+
+class JourneyBar(Flowable):
+    """Visual journey bar: Diagnóstico ✓ → Diseño → Implementación → Optimización."""
+
+    def __init__(self, width):
+        super().__init__()
+        self._w = width
+        self._h = 56
+
+    def wrap(self, availWidth, availHeight):
+        return (self._w, self._h)
+
+    def draw(self):
+        c = self.canv
+        steps = [
+            ("Diagnostico", True),
+            ("Diseno", False),
+            ("Implementacion", False),
+            ("Optimizacion", False),
+        ]
+        n = len(steps)
+        cell_w = self._w / n
+
+        for i, (name, done) in enumerate(steps):
+            x = i * cell_w
+            # background
+            bg = colors.HexColor("#061a0a") if done else colors.HexColor("#081c5e")
+            c.setFillColor(bg)
+            c.rect(x, 0, cell_w, self._h, fill=1, stroke=0)
+
+            # top accent line
+            accent = colors.HexColor("#56ef9f") if done else colors.HexColor("#0d2070")
+            c.setStrokeColor(accent)
+            c.setLineWidth(2.5 if done else 0.5)
+            c.line(x, self._h, x + cell_w, self._h)
+
+            # Number/checkmark
+            num_str = "v" if done else str(i + 1)
+            c.setFont("Helvetica-Bold", 16)
+            c.setFillColor(colors.HexColor("#56ef9f") if done else colors.HexColor("#3a5090"))
+            c.drawCentredString(x + cell_w / 2, self._h / 2 + 4, num_str)
+
+            # Label
+            c.setFont("Helvetica-Bold" if done else "Helvetica", 7.5)
+            c.setFillColor(colors.HexColor("#edf4ff") if done else colors.HexColor("#3a5090"))
+            c.drawCentredString(x + cell_w / 2, self._h / 2 - 11, name)
+
+            # Separator line
+            if i < n - 1:
+                c.setStrokeColor(colors.HexColor("#0c1f50"))
+                c.setLineWidth(0.4)
+                c.line(x + cell_w, 0, x + cell_w, self._h)
+
+
 # ── Narrative builders ─────────────────────────────────────────────────────────
 def _opening_paragraph(answers, metrics, s):
     """
@@ -256,8 +516,8 @@ def _opening_paragraph(answers, metrics, s):
     Uses their actual numbers to make it concrete and credible.
     """
     institution = answers.get("institution_name", "su institución")
-    leads       = metrics.get("leads")
-    enrolled    = metrics.get("enrolled")
+    leads       = _parse_int(metrics.get("leads"))
+    enrolled    = _parse_int(metrics.get("enrolled"))
     enroll_rate = metrics.get("enroll_rate")
     target      = _parse_int(answers.get("target_new_enrollments"))
     gap         = metrics.get("gap_to_target")
@@ -376,84 +636,56 @@ def _opportunity_narrative(answers, metrics, s):
     return items
 
 
-def _funnel_table(metrics, s):
-    """Visual funnel table with loss numbers and conversion colors."""
-    stages = [
-        ("Leads",           "leads"),
-        ("Contactados",     "contacted"),
-        ("Citas agendadas", "appointments"),
-        ("Asistentes",      "attended"),
-        ("Inscritos",       "enrolled"),
+def _funnel_bars(metrics, s):
+    """Visual funnel as horizontal bars using FunnelBar Flowable."""
+    stage_defs = [
+        ("Leads",           "leads",           None,                   None),
+        ("Contactados",     "contacted",        "contact_rate",         None),
+        ("Citas agendadas", "appointments",     "appointment_rate_leads", None),
+        ("Asistentes",      "attended",         "attendance_rate",      None),
+        ("Inscritos",       "enrolled",         "close_rate_attended",  None),
     ]
-    conv_keys = {
-        "contacted":    ("contact_rate",            "Contactación"),
-        "appointments": ("appointment_rate_leads",  "Conv. a cita"),
-        "attended":     ("attendance_rate",         "Asistencia"),
-        "enrolled":     ("close_rate_attended",     "Cierre"),
-    }
 
-    rows = [["Etapa", "Valor", "Conversión", "Pérdida absoluta"]]
-    has_data = False
-
-    prev_val = None
-    for label, key in stages:
+    stages = []
+    for label, key, rate_key, _ in stage_defs:
         val = metrics.get(key)
         if val is None:
             continue
-        has_data = True
-        val_int = int(val)
+        rate = metrics.get(rate_key) if rate_key else None
+        pct_color = _conv_color(rate) if rate is not None else C_MUTED
+        stages.append((label, int(val), rate, pct_color))
 
-        ck, _ = conv_keys.get(key, (None, None))
-        if ck:
-            rate = metrics.get(ck)
-            conv_str  = _pct(rate) if rate is not None else "—"
-            conv_color = _conv_color(rate) if rate is not None else C_MUTED
-        else:
-            conv_str  = "—"
-            conv_color = C_MUTED
-
-        loss_str  = ""
-        loss_color = C_MUTED
-        if prev_val is not None:
-            loss = prev_val - val_int
-            if loss > 0:
-                loss_str  = f"−{loss:,}"
-                loss_color = C_RED if loss / max(prev_val,1) > 0.5 else C_YELLOW
-
-        rows.append([
-            Paragraph(label, s["finding_body"]),
-            Paragraph(f"<b>{val_int:,}</b>", s["finding_body"]),
-            Paragraph(f"<b>{conv_str}</b>",
-                ParagraphStyle("cv", fontName="Helvetica-Bold", fontSize=9.5,
-                               textColor=conv_color, leading=14)),
-            Paragraph(loss_str,
-                ParagraphStyle("ls", fontName="Helvetica-Bold", fontSize=9.5,
-                               textColor=loss_color, leading=14)),
-        ])
-        prev_val = val_int
-
-    if not has_data or len(rows) <= 1:
+    if len(stages) < 2:
         return []
 
-    col_widths = [W_CONTENT*0.35, W_CONTENT*0.18, W_CONTENT*0.25, W_CONTENT*0.22]
-    t = Table(rows, colWidths=col_widths)
-    t.setStyle(TableStyle([
-        # Header
-        ("BACKGROUND",    (0,0),(-1,0), C_PANEL),
-        ("TEXTCOLOR",     (0,0),(-1,0), C_CYAN),
-        ("FONTNAME",      (0,0),(-1,0), "Helvetica-Bold"),
-        ("FONTSIZE",      (0,0),(-1,0), 8.5),
-        # Data rows — alternating
-        ("ROWBACKGROUNDS",(0,1),(-1,-1), [C_BG, colors.HexColor("#070d2d")]),
-        ("GRID",          (0,0),(-1,-1), 0.4, colors.HexColor("#0d2070")),
-        ("TOPPADDING",    (0,0),(-1,-1), 7),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 7),
-        ("LEFTPADDING",   (0,0),(-1,-1), 10),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 10),
-        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
-        ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+    items = []
+    # Column headers
+    hdr_table = Table(
+        [[
+            Paragraph("Etapa", ParagraphStyle("fh", fontName="Helvetica-Bold", fontSize=8,
+                      textColor=C_CYAN, alignment=TA_RIGHT)),
+            Paragraph("Volumen", ParagraphStyle("fh2", fontName="Helvetica-Bold", fontSize=8,
+                      textColor=C_CYAN)),
+            Paragraph("Conv.", ParagraphStyle("fh3", fontName="Helvetica-Bold", fontSize=8,
+                      textColor=C_CYAN)),
+        ]],
+        colWidths=[110, W_CONTENT - 110 - 60, 60]
+    )
+    hdr_table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#060d2a")),
+        ("TOPPADDING",    (0,0), (-1,-1), 5),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+        ("LEFTPADDING",   (0,0), (-1,-1), 6),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 6),
+        ("LINEABOVE",     (0,0), (-1,0), 1, C_PANEL),
+        ("LINEBELOW",     (0,0), (-1,-1), 0.4, C_PANEL),
+        ("ALIGN",         (0,0), (0,-1), "RIGHT"),
     ]))
-    return [t]
+    items.append(hdr_table)
+    items.append(Spacer(1, 4))
+    items.append(FunnelBar(stages, W_CONTENT))
+    items.append(Spacer(1, 8))
+    return items
 
 
 def _journey_steps_pdf(s):
@@ -499,7 +731,7 @@ def _solutions_block_client(f, s):
 
     items = []
     sol_header = Table(
-        [[Paragraph("  CÓMO LO RESUELVE SUPERLEADS", ParagraphStyle("sh",
+        [[Paragraph("  COMO LO RESUELVE SUPERLEADS", ParagraphStyle("sh",
             fontName="Helvetica-Bold", fontSize=8, textColor=C_CYAN,
             spaceAfter=0, tracking=40))]],
         colWidths=[W_CONTENT]
@@ -520,7 +752,7 @@ def _solutions_block_client(f, s):
         "prerequisite":  C_YELLOW,
     }
     role_label = {
-        "primary":       "SOLUCIÓN PRINCIPAL",
+        "primary":       "SOLUCION PRINCIPAL",
         "complementary": "COMPLEMENTARIA",
         "prerequisite":  "BASE NECESARIA",
     }
@@ -563,72 +795,140 @@ def _solutions_block_client(f, s):
 
 def _finding_block_client(f, idx, s):
     """
-    One finding for the CLIENT pdf.
-    Narrative: what's happening → why it matters → what it costs.
-    Includes public-facing solutions.
+    Premium finding card for the CLIENT pdf.
+    Three-section card: header (priority+zone) / body (what+why+impact) / solutions
     """
-    sev_color = _severity_color(f.get("severity_label","Media"))
-    items     = []
+    sev_color  = _severity_color(f.get("severity_label", "Media"))
+    sev_label  = f.get("severity_label", "Media").upper()
+    zone       = f.get("funnel_zone", "")
+    title      = f.get("title", "")
+    conf_label = f.get("confidence_label", "")
+    items      = []
 
-    # ── Header ──
-    header_cells = [[
-        [Paragraph(f"#{idx}", s["finding_num"]),
-         Paragraph(f.get("title",""), s["finding_title"])],
-        [Paragraph(f"Severidad: <b>{f.get('severity_label','—')}</b>",  s["finding_muted"]),
-         Paragraph(f"Certeza:    <b>{f.get('confidence_label','—')}</b>", s["finding_muted"]),
-         Paragraph(f"Zona:       <b>{f.get('funnel_zone','—')}</b>",      s["finding_muted"])],
-    ]]
-    ht = Table(header_cells, colWidths=[W_CONTENT*0.62, W_CONTENT*0.38])
+    # ── SECTION 1: Header ─────────────────────────────────────────────────
+    # Left: priority badge + title row
+    # Right: zone
+    num_str = f"{idx:02d}"
+
+    priority_badge = Paragraph(
+        f"● {sev_label} PRIORIDAD",
+        ParagraphStyle("pb", fontName="Helvetica-Bold", fontSize=7.5,
+                       textColor=sev_color, leading=10, tracking=20, spaceAfter=6)
+    )
+    zone_badge = Paragraph(
+        f"Zona: <b>{zone}</b>" if zone else "",
+        ParagraphStyle("zb", fontName="Helvetica", fontSize=7.5,
+                       textColor=C_MUTED, leading=10, alignment=TA_RIGHT)
+    )
+
+    num_para = Paragraph(
+        f"<b>{num_str}</b>",
+        ParagraphStyle("fn", fontName="Helvetica-Bold", fontSize=28,
+                       textColor=colors.HexColor("#1a3580"), leading=30, spaceAfter=0)
+    )
+    title_para = Paragraph(
+        title,
+        ParagraphStyle("ft", fontName="Helvetica-Bold", fontSize=12,
+                       textColor=C_WHITE, leading=16, spaceAfter=0)
+    )
+
+    header_left = [priority_badge, num_para, title_para]
+    header_right = [zone_badge]
+    if conf_label:
+        header_right.append(Paragraph(
+            f"Certeza: <b>{conf_label}</b>",
+            ParagraphStyle("cf", fontName="Helvetica", fontSize=7.5,
+                           textColor=C_MUTED, leading=10, alignment=TA_RIGHT)
+        ))
+
+    ht = Table(
+        [[header_left, header_right]],
+        colWidths=[W_CONTENT * 0.68, W_CONTENT * 0.32]
+    )
     ht.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0),(-1,-1), C_PANEL),
-        ("LEFTPADDING",   (0,0),(-1,-1), 14),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 14),
-        ("TOPPADDING",    (0,0),(-1,-1), 10),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 10),
-        ("LINEABOVE",     (0,0),(-1,0),  3, sev_color),
-        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ("BACKGROUND",    (0,0), (-1,-1), C_PANEL),
+        ("LEFTPADDING",   (0,0), (-1,-1), 16),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 16),
+        ("TOPPADDING",    (0,0), (-1,-1), 12),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 12),
+        ("LINEABOVE",     (0,0), (-1,0),  3, sev_color),
+        ("VALIGN",        (0,0), (-1,-1), "TOP"),
     ]))
-    items.append(KeepTogether([ht]))
+    items.append(ht)
 
-    # ── Body ──
-    body_rows = [
-        [Paragraph("<b>Lo que encontramos</b>", s["finding_muted"]),
-         Paragraph(f.get("summary",""), s["finding_body"])],
-        [Paragraph("<b>Por qué ocurre</b>", s["finding_muted"]),
-         Paragraph(f.get("rationale",""), s["finding_body"])],
-    ]
+    # ── SECTION 2: Body ───────────────────────────────────────────────────
+    body_content = []
+
+    # "Lo que encontramos"
+    body_content.append(Paragraph(
+        "LO QUE ENCONTRAMOS",
+        ParagraphStyle("lh", fontName="Helvetica-Bold", fontSize=7, textColor=C_MUTED,
+                       tracking=40, leading=10, spaceAfter=4)
+    ))
+    body_content.append(Paragraph(
+        f.get("summary", ""),
+        ParagraphStyle("sb", fontName="Helvetica", fontSize=9.5,
+                       textColor=C_TEXT, leading=15, spaceAfter=10, alignment=TA_JUSTIFY)
+    ))
+
+    # "Por qué ocurre"
+    body_content.append(Paragraph(
+        "POR QUE OCURRE",
+        ParagraphStyle("rh", fontName="Helvetica-Bold", fontSize=7, textColor=C_MUTED,
+                       tracking=40, leading=10, spaceAfter=4)
+    ))
+    body_content.append(Paragraph(
+        f.get("rationale", ""),
+        ParagraphStyle("rb", fontName="Helvetica", fontSize=9.5,
+                       textColor=C_TEXT, leading=15, spaceAfter=8, alignment=TA_JUSTIFY)
+    ))
+
+    # Estimated impact — highlight box
     if f.get("estimated_impact"):
-        body_rows.append([
-            Paragraph("<b>Impacto estimado</b>", s["finding_muted"]),
-            Paragraph(f"<b>{f['estimated_impact']}</b>",
-                ParagraphStyle("imp", fontName="Helvetica-Bold", fontSize=9.5,
-                               textColor=C_ACCENT, leading=14)),
-        ])
-    if f.get("missing_data"):
-        body_rows.append([
-            Paragraph("<b>Para mayor certeza</b>", s["finding_muted"]),
-            Paragraph(f.get("missing_data",""), s["finding_muted"]),
-        ])
-    if f.get("evidence"):
-        ev_text = "  ·  ".join(f["evidence"])
-        body_rows.append([
-            Paragraph("<b>Evidencia usada</b>", s["finding_muted"]),
-            Paragraph(ev_text, s["finding_muted"]),
-        ])
+        impact_box = Table(
+            [[
+                Paragraph("IMPACTO", ParagraphStyle("il", fontName="Helvetica-Bold", fontSize=7,
+                           textColor=C_ACCENT, tracking=30, leading=10)),
+                Paragraph(f"<b>{f['estimated_impact']}</b>",
+                          ParagraphStyle("iv", fontName="Helvetica-Bold", fontSize=10,
+                                         textColor=C_ACCENT, leading=13)),
+            ]],
+            colWidths=[72, W_CONTENT - 72 - 48]
+        )
+        impact_box.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#061a0a")),
+            ("LINEABOVE",     (0,0), (-1,0),  1.5, C_ACCENT),
+            ("LINEBELOW",     (0,0), (-1,-1), 0.4, colors.HexColor("#0f4020")),
+            ("TOPPADDING",    (0,0), (-1,-1), 8),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+            ("LEFTPADDING",   (0,0), (-1,-1), 12),
+            ("RIGHTPADDING",  (0,0), (-1,-1), 12),
+            ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+        ]))
+        body_content.append(impact_box)
+        body_content.append(Spacer(1, 4))
 
-    bt = Table(body_rows, colWidths=[W_CONTENT*0.25, W_CONTENT*0.75])
-    bt.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#060d2a")),
-        ("LEFTPADDING",   (0,0),(-1,-1), 12),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 12),
-        ("TOPPADDING",    (0,0),(-1,-1), 6),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 6),
-        ("LINEBELOW",     (0,0),(-1,-2), 0.3, colors.HexColor("#0c1f60")),
-        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+    # Missing data note
+    if f.get("missing_data"):
+        body_content.append(Paragraph(
+            f"<i>Para mayor certeza: {f['missing_data']}</i>",
+            ParagraphStyle("md", fontName="Helvetica-Oblique", fontSize=8,
+                           textColor=C_MUTED, leading=12, spaceAfter=4)
+        ))
+
+    body_table = Table([[body_content]], colWidths=[W_CONTENT])
+    body_table.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#060d2a")),
+        ("TOPPADDING",    (0,0), (-1,-1), 14),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+        ("LEFTPADDING",   (0,0), (-1,-1), 16),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 16),
     ]))
-    items.append(bt)
+    items.append(body_table)
+
+    # ── SECTION 3: Solutions ──────────────────────────────────────────────
     items.extend(_solutions_block_client(f, s))
-    items.append(Spacer(1, 12))
+    items.append(Spacer(1, 16))
     return items
 
 
@@ -641,7 +941,7 @@ def _finding_block_internal(f, idx, s):
         return items
 
     role_map = {"primary": "Principal", "complementary": "Complementaria",
-                "prerequisite": "Precondición", "external": "Externo"}
+                "prerequisite": "Precondicion", "external": "Externo"}
 
     sol_header = Table(
         [[Paragraph("  SOLUCIONES SUPERLEADS", s["internal_warn"])]],
@@ -661,7 +961,7 @@ def _finding_block_internal(f, idx, s):
             [Paragraph(f"<b>{sol.get('name','')}</b>   [{role_label}]", s["sol_title"]),
              Paragraph(sol.get("internal_message",""), s["sol_body"])],
             [Paragraph(sol.get("public_message",""), s["sol_body"]),
-             Paragraph(f"🎯 {sol.get('demo_angle','')}", s["sol_body"])],
+             Paragraph(f"Demo: {sol.get('demo_angle','')}", s["sol_body"])],
         ]
         st = Table(sol_rows, colWidths=[W_CONTENT*0.48, W_CONTENT*0.52])
         st.setStyle(TableStyle([
@@ -716,16 +1016,6 @@ def _comparison_funnel_pdf(metrics, answers, s):
     W_SIDE = W_CONTENT * 0.42
     W_MID  = W_CONTENT * 0.16
     COL_W  = [W_SIDE, W_MID, W_SIDE]
-
-    def _stage_cell(label, value, val_color, bg_color, border_color):
-        """Returns a [label_para, value_para] list for a stage cell."""
-        return [
-            Paragraph(label, ParagraphStyle("fl", fontName="Helvetica", fontSize=7.5,
-                                            textColor=C_MUTED, alignment=TA_CENTER)),
-            Paragraph(f"<b>{value:,}</b>", ParagraphStyle("fv", fontName="Helvetica-Bold",
-                                            fontSize=13, textColor=val_color,
-                                            alignment=TA_CENTER, leading=16)),
-        ]
 
     def _conv_color_str(rate):
         if rate >= 0.60: return C_ACCENT
@@ -865,11 +1155,14 @@ CALENDAR_URL = "https://link.superleads.mx/widget/bookings/superleads_revision_d
 
 
 def _strategic_direction_block(s):
-    """Always-present Dirección Estratégica SuperLeads recommendation card."""
+    """
+    Dirección Estratégica SuperLeads — 4 cards in a 2x2 grid layout.
+    Each card has an icon, bold title, and description.
+    """
     items = []
 
     header = Table([[
-        Paragraph("★  DIRECCIÓN ESTRATÉGICA SUPERLEADS", ParagraphStyle("deh",
+        Paragraph("★  DIRECCION ESTRATEGICA SUPERLEADS", ParagraphStyle("deh",
             fontName="Helvetica-Bold", fontSize=9, textColor=C_ACCENT,
             spaceAfter=0, tracking=40))
     ]], colWidths=[W_CONTENT])
@@ -901,105 +1194,382 @@ def _strategic_direction_block(s):
         ("LINEBELOW",     (0,0),(-1,-1), 0.4, colors.HexColor("#0f4020")),
     ]))
     items.append(intro)
+    items.append(Spacer(1, 8))
 
-    STRIPE = 5
-    bullets = [
-        ("Sistema completo, no piezas sueltas",
+    # 4 cards in 2x2 grid
+    card_specs = [
+        ("●", "Sistema completo, no piezas sueltas",
          "SuperLeads diseña, instala y opera todo el Sistema de Inscripciones: CRM, "
          "procesos, formación del equipo y métricas, en un solo contrato sin intermediarios."),
-        ("Estrategia + ejecución continua",
+        ("◈", "Estrategia + ejecución continua",
          "Acompañamiento permanente del asesor para ajustar la estrategia según los "
          "resultados reales de cada ciclo. No te deja solo después de la instalación."),
-        ("Decisiones con datos, no intuición",
+        ("→", "Decisiones con datos, no intuición",
          "Métricas del embudo en tiempo real — contactación, citas, asistencia y cierre — "
          "para saber exactamente qué palanca mover en cada momento."),
-        ("Resultados medibles por ciclo",
+        ("★", "Resultados medibles por ciclo",
          "Compromisos claros de seguimiento: si los indicadores no avanzan, "
          "la estrategia se ajusta. El objetivo es que los números mejoren, no sólo que se midan."),
     ]
 
-    for title, desc in bullets:
-        row = Table([[
-            "",
-            [
-                Paragraph(f"<b>{title}</b>", ParagraphStyle("bt", fontName="Helvetica-Bold",
-                    fontSize=9, textColor=C_ACCENT, leading=13, spaceAfter=3)),
-                Paragraph(desc, ParagraphStyle("bd", fontName="Helvetica", fontSize=9,
-                    textColor=C_TEXT, leading=13, alignment=TA_JUSTIFY)),
-            ],
-        ]], colWidths=[STRIPE, W_CONTENT - STRIPE])
-        row.setStyle(TableStyle([
-            ("BACKGROUND",    (0,0), (0,0),  C_ACCENT),
-            ("BACKGROUND",    (1,0), (1,0),  colors.HexColor("#060f1e")),
+    def _make_card(icon, title, desc):
+        card_content = [
+            Paragraph(icon, ParagraphStyle("ci", fontName="Helvetica-Bold", fontSize=18,
+                      textColor=C_ACCENT, leading=22, spaceAfter=6)),
+            Paragraph(f"<b>{title}</b>", ParagraphStyle("ct", fontName="Helvetica-Bold",
+                      fontSize=9.5, textColor=C_WHITE, leading=13, spaceAfter=5)),
+            Paragraph(desc, ParagraphStyle("cd", fontName="Helvetica", fontSize=8.5,
+                      textColor=C_TEXT, leading=13, alignment=TA_JUSTIFY)),
+        ]
+        card = Table([[card_content]], colWidths=[(W_CONTENT / 2) - 4])
+        card.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#060f1e")),
+            ("TOPPADDING",    (0,0), (-1,-1), 14),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+            ("LEFTPADDING",   (0,0), (-1,-1), 14),
+            ("RIGHTPADDING",  (0,0), (-1,-1), 14),
+            ("LINEABOVE",     (0,0), (-1,0),  2, C_ACCENT),
             ("LINEBELOW",     (0,0), (-1,-1), 0.4, colors.HexColor("#0f4020")),
-            ("TOPPADDING",    (0,0), (0,0),  0),
-            ("BOTTOMPADDING", (0,0), (0,0),  0),
-            ("LEFTPADDING",   (0,0), (0,0),  0),
-            ("RIGHTPADDING",  (0,0), (0,0),  0),
-            ("TOPPADDING",    (1,0), (1,0),  9),
-            ("BOTTOMPADDING", (1,0), (1,0),  9),
-            ("LEFTPADDING",   (1,0), (1,0),  14),
-            ("RIGHTPADDING",  (1,0), (1,0),  14),
-            ("VALIGN",        (0,0), (-1,-1), "TOP"),
         ]))
-        items.append(row)
+        return card
 
+    CARD_W = (W_CONTENT - 8) / 2
+
+    # Row 1
+    c1 = _make_card(*card_specs[0])
+    c2 = _make_card(*card_specs[1])
+    row1 = Table([[c1, c2]], colWidths=[CARD_W, CARD_W])
+    row1.setStyle(TableStyle([
+        ("LEFTPADDING",   (0,0), (-1,-1), 0),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 0),
+        ("TOPPADDING",    (0,0), (-1,-1), 0),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+        ("ALIGN",         (0,0), (-1,-1), "LEFT"),
+        ("VALIGN",        (0,0), (-1,-1), "TOP"),
+    ]))
+    items.append(row1)
+    items.append(Spacer(1, 6))
+
+    # Row 2
+    c3 = _make_card(*card_specs[2])
+    c4 = _make_card(*card_specs[3])
+    row2 = Table([[c3, c4]], colWidths=[CARD_W, CARD_W])
+    row2.setStyle(TableStyle([
+        ("LEFTPADDING",   (0,0), (-1,-1), 0),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 0),
+        ("TOPPADDING",    (0,0), (-1,-1), 0),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+        ("ALIGN",         (0,0), (-1,-1), "LEFT"),
+        ("VALIGN",        (0,0), (-1,-1), "TOP"),
+    ]))
+    items.append(row2)
     items.append(Spacer(1, 12))
     return items
 
 
-def _closing_block(s, is_preliminary=False):
+def _executive_summary_block(answers, metrics, result, findings, s):
+    """
+    Página 2 — Resumen ejecutivo 'En 30 segundos'.
+    1. Párrafo de apertura personalizado
+    2. 4 KPI boxes en fila
+    3. Hallazgo #1 en highlight
+    """
     items = []
-    items.append(_hr(C_BLUE, space_before=6))
 
-    # Journey steps
-    items.extend(_journey_steps_pdf(s))
+    # Title
+    items.append(Paragraph(
+        "E N   3 0   S E G U N D O S",
+        ParagraphStyle("exec_label", fontName="Helvetica-Bold", fontSize=8,
+                       textColor=C_ACCENT, tracking=20, leading=12, spaceAfter=6)
+    ))
 
-    items.append(Paragraph("Próximo paso: Diseño de Solución", s["section_title"]))
+    # Opening paragraph
+    items.append(_opening_paragraph(answers, metrics, s))
+    items.append(Spacer(1, 10))
+
+    # 4 KPI boxes
+    certainty    = result.get("certainty_score", 0)
+    leads        = _parse_int(metrics.get("leads"))
+    close_rate   = metrics.get("close_rate_attended")
+    if close_rate is None:
+        close_rate = metrics.get("enroll_rate")
+    gap          = metrics.get("gap_to_target")
+    recoverable  = result.get("total_recoverable", {})
+
+    # El 4º KPI prioriza el potencial recuperable (limpio); si no hay, muestra la brecha.
+    if recoverable.get("students"):
+        kpi4 = (f"+{_fmt(recoverable['students'])}", "Alumnos\nrecuperables")
+    elif gap and gap > 0:
+        kpi4 = (_fmt(gap), "Alumnos de brecha\nhacia la meta")
+    else:
+        kpi4 = ("—", "Alumnos de brecha\nhacia la meta")
+
+    kpi_data = [
+        (f"{certainty:.0f}%",           "Certeza del\ndiagnóstico"),
+        (_fmt(leads) if leads else "—",  "Leads\nanuales"),
+        (_pct(close_rate),               "Tasa de cierre\nreal"),
+        kpi4,
+    ]
+
+    kpi_cells = []
+    for val, lbl in kpi_data:
+        kpi_cells.append([
+            Paragraph(val, ParagraphStyle("kv", fontName="Helvetica-Bold", fontSize=20,
+                       textColor=C_ACCENT, leading=24, alignment=TA_CENTER)),
+            Paragraph(lbl, ParagraphStyle("kl", fontName="Helvetica", fontSize=7.5,
+                       textColor=C_MUTED, leading=10, alignment=TA_CENTER)),
+        ])
+
+    kpi_w = W_CONTENT / 4
+    kt = Table([kpi_cells], colWidths=[kpi_w] * 4)
+    kt.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#0b1f69")),
+        ("GRID",          (0,0), (-1,-1), 0.5, colors.HexColor("#0d2070")),
+        ("TOPPADDING",    (0,0), (-1,-1), 14),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+        ("LEFTPADDING",   (0,0), (-1,-1), 8),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 8),
+        ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+        ("ALIGN",         (0,0), (-1,-1), "CENTER"),
+        ("LINEABOVE",     (0,0), (-1,0),  2, C_ACCENT),
+    ]))
+    items.append(kt)
+    items.append(Spacer(1, 14))
+
+    # ── Franja estrella: potencial recuperable (número honesto, sin doble conteo) ──
+    if recoverable.get("students"):
+        students = recoverable["students"]
+        money    = recoverable.get("money")
+        cur_enr  = _parse_int(metrics.get("enrolled"))
+        if money:
+            headline = (
+                f"Llevando cada etapa del embudo al estándar SuperLeads, tu sistema "
+                f"actual podría sumar <b><font color='#56ef9f'>≈ {students:,} alumnos más al año</font></b> "
+                f"(<b><font color='#56ef9f'>${money:,.0f}</font></b> en colegiaturas) — "
+                f"con los mismos leads que ya entran."
+            )
+        else:
+            headline = (
+                f"Llevando cada etapa del embudo al estándar SuperLeads, tu sistema "
+                f"actual podría sumar <b><font color='#56ef9f'>≈ {students:,} alumnos más al año</font></b> — "
+                f"con los mismos leads que ya entran."
+            )
+        star = Table([[
+            Paragraph(headline, ParagraphStyle("star", fontName="Helvetica", fontSize=10.5,
+                       textColor=C_WHITE, leading=16))
+        ]], colWidths=[W_CONTENT])
+        star.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#06231a")),
+            ("TOPPADDING",    (0,0), (-1,-1), 14),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+            ("LEFTPADDING",   (0,0), (-1,-1), 16),
+            ("RIGHTPADDING",  (0,0), (-1,-1), 16),
+            ("LINEABOVE",     (0,0), (-1,0),  2, C_ACCENT),
+            ("LINEBELOW",     (0,0), (-1,-1), 2, C_ACCENT),
+        ]))
+        items.append(star)
+        items.append(Paragraph(
+            "Estimación conservadora basada en tus propios números, acotada por tu cupo disponible. "
+            "No es una proyección garantizada — es el techo realista del sistema actual.",
+            ParagraphStyle("star_note", fontName="Helvetica-Oblique", fontSize=7.5,
+                           textColor=C_MUTED, leading=11, spaceBefore=4)
+        ))
+        items.append(Spacer(1, 14))
+
+    # Hallazgo #1 en highlight
+    if findings:
+        f1        = findings[0]
+        sev_color = _severity_color(f1.get("severity_label", "Alta"))
+        hi_box    = Table([[
+            Paragraph(
+                f"<b>Hallazgo #1 — {f1.get('title','')}</b><br/>"
+                f"<font color='#aac4ff'>{f1.get('summary','')[:180]}{'...' if len(f1.get('summary','')) > 180 else ''}</font>",
+                ParagraphStyle("h1", fontName="Helvetica", fontSize=9.5,
+                               textColor=C_WHITE, leading=15)
+            ),
+        ]], colWidths=[W_CONTENT])
+        hi_box.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#061a0a")),
+            ("TOPPADDING",    (0,0), (-1,-1), 14),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+            ("LEFTPADDING",   (0,0), (-1,-1), 16),
+            ("RIGHTPADDING",  (0,0), (-1,-1), 16),
+            ("LINEABOVE",     (0,0), (-1,0),  3, sev_color),
+            ("LINEBELOW",     (0,0), (-1,-1), 0.5, colors.HexColor("#0f4020")),
+        ]))
+        items.append(Paragraph(
+            "HALLAZGO PRINCIPAL",
+            ParagraphStyle("hl_lbl", fontName="Helvetica-Bold", fontSize=7,
+                           textColor=C_MUTED, tracking=40, leading=10, spaceAfter=4)
+        ))
+        items.append(hi_box)
+        items.append(Spacer(1, 8))
+
+    return items
+
+
+def _closing_page(s, is_preliminary=False):
+    """
+    Página final de CTA dedicada — página completa oscura con journey bar,
+    mensaje final y link del calendario.
+    """
+    items = []
+    items.append(PageBreak())
+
+    # Big headline
+    items.append(Spacer(1, 30))
+    items.append(Paragraph(
+        "El diagnóstico está completo.",
+        ParagraphStyle("cl_big", fontName="Helvetica-Bold", fontSize=24,
+                       textColor=C_WHITE, leading=30, alignment=TA_CENTER, spaceAfter=12)
+    ))
+    items.append(Paragraph(
+        "El siguiente paso es diseñar la solución exacta para tu caso.",
+        ParagraphStyle("cl_sub", fontName="Helvetica", fontSize=13,
+                       textColor=C_MUTED, leading=18, alignment=TA_CENTER, spaceAfter=30)
+    ))
+
+    # Journey bar visual (custom Flowable)
+    items.append(JourneyBar(W_CONTENT))
+    items.append(Spacer(1, 28))
 
     if is_preliminary:
         msg = (
             "Este es un diagnóstico preliminar basado en los datos disponibles. "
             "Tiene suficiente claridad para arrancar una conversación productiva, "
-            "pero se fortalece con más datos del embudo completo. "
-            "La siguiente reunión es para revisar qué sistema resuelve exactamente lo que se detectó."
+            "pero se fortalece con más datos del embudo completo."
         )
     else:
         msg = (
-            "El diagnóstico está completo y los hallazgos son concretos. "
             "La siguiente conversación no es una propuesta comercial genérica — "
             "es diseñar exactamente qué intervención resuelve cada cuello detectado, "
             "en el orden de prioridad que el propio sistema reveló."
         )
 
-    items.append(Paragraph(msg, s["body"]))
-    items.append(Spacer(1, 10))
+    items.append(Paragraph(
+        msg,
+        ParagraphStyle("cl_body", fontName="Helvetica", fontSize=10,
+                       textColor=C_MUTED, leading=16, alignment=TA_CENTER, spaceAfter=28)
+    ))
 
-    # CTA box
-    cta_table = Table([[
+    # Big CTA box
+    cta_box = Table([[
         Paragraph(
-            f"Agenda tu Diseño de Solución:<br/>"
+            f"Agenda tu Diseño de Solución<br/>"
             f"<b><font color='#56ef9f'>{CALENDAR_URL}</font></b>",
-            ParagraphStyle("cta_url", fontName="Helvetica", fontSize=10,
-                           textColor=C_TEXT, leading=16, alignment=TA_CENTER)
+            ParagraphStyle("cta_url", fontName="Helvetica", fontSize=11,
+                           textColor=C_TEXT, leading=20, alignment=TA_CENTER)
         )
     ]], colWidths=[W_CONTENT])
-    cta_table.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#061a0a")),
-        ("TOPPADDING",    (0,0),(-1,-1), 16),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 16),
-        ("LEFTPADDING",   (0,0),(-1,-1), 20),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 20),
-        ("LINEABOVE",     (0,0),(-1,0),  2, C_ACCENT),
-        ("LINEBELOW",     (0,0),(-1,-1), 2, C_ACCENT),
+    cta_box.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#061a0a")),
+        ("TOPPADDING",    (0,0), (-1,-1), 22),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 22),
+        ("LEFTPADDING",   (0,0), (-1,-1), 24),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 24),
+        ("LINEABOVE",     (0,0), (-1,0),  2.5, C_ACCENT),
+        ("LINEBELOW",     (0,0), (-1,-1), 2.5, C_ACCENT),
+        ("LINEBEFORE",    (0,0), (-1,-1), 0.5, colors.HexColor("#0f4020")),
+        ("LINEAFTER",     (0,0), (-1,-1), 0.5, colors.HexColor("#0f4020")),
     ]))
-    items.append(cta_table)
-    items.append(Spacer(1, 8))
+    items.append(cta_box)
+    items.append(Spacer(1, 20))
+
     items.append(Paragraph(
         "<i>SuperLeads no vende piezas sueltas. Diseña y opera el Sistema de Inscripciones completo.</i>",
-        s["callout"]
+        ParagraphStyle("cl_callout", fontName="Helvetica-BoldOblique", fontSize=10,
+                       textColor=C_WHITE, leading=16, alignment=TA_CENTER, spaceAfter=8)
     ))
+
+    items.append(Spacer(1, 16))
+    items.append(Paragraph(
+        f"superleads.mx  ·  Generado el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}  ·  Confidencial",
+        ParagraphStyle("cl_footer", fontName="Helvetica", fontSize=7.5,
+                       textColor=colors.HexColor("#3a5090"),
+                       alignment=TA_CENTER, leading=11)
+    ))
+
+    # ── Página final de marca ─────────────────────────────────────────────
+    items.append(PageBreak())
+    items.append(_brand_closing_page())
+
     return items
+
+
+class _BrandClosingPage(Flowable):
+    """Página de cierre de marca: frase icónica + logo SuperLeads grande."""
+
+    def __init__(self, width, height):
+        super().__init__()
+        self.width  = width
+        self.height = height
+
+    def wrap(self, aw, ah):
+        return (self.width, self.height)
+
+    def draw(self):
+        c    = self.canv
+        W, H = letter
+        # Usa el espacio del área de contenido — calculamos posiciones absolutas
+        content_w = self.width
+
+        # ── Frase principal ───────────────────────────────────────────────
+        # Centrada verticalmente en la zona de contenido
+        mid = self.height / 2
+
+        # Línea decorativa superior
+        c.setStrokeColor(colors.HexColor("#1db2fc"))
+        c.setLineWidth(0.8)
+        c.line(0, mid + 110, content_w, mid + 110)
+
+        # La frase
+        c.setFont("Helvetica-Bold", 22)
+        c.setFillColor(colors.HexColor("#edf4ff"))
+        # Partir en 2 líneas naturales
+        line1 = "Un buen anuncio no reemplaza"
+        line2 = "un mal seguimiento."
+        c.drawCentredString(content_w / 2, mid + 70, line1)
+        c.setFillColor(colors.HexColor("#56ef9f"))
+        c.drawCentredString(content_w / 2, mid + 40, line2)
+
+        # Línea decorativa inferior
+        c.setStrokeColor(colors.HexColor("#56ef9f"))
+        c.setLineWidth(1.5)
+        c.line(content_w / 2 - 80, mid + 22, content_w / 2 + 80, mid + 22)
+
+        # ── Logo grande centrado ──────────────────────────────────────────
+        logo_img = _get_logo()
+        logo_size = 80  # Logo imponente
+        logo_x = content_w / 2 - logo_size / 2
+        logo_y = mid - 90
+
+        if logo_img:
+            c.drawImage(logo_img, logo_x, logo_y,
+                        width=logo_size, height=logo_size, mask="auto")
+
+        # "SUPERLEADS" bajo el logo
+        c.setFont("Helvetica-Bold", 26)
+        c.setFillColor(colors.HexColor("#1db2fc"))
+        c.drawCentredString(content_w / 2, logo_y - 28, "SUPERLEADS")
+
+        # Tagline
+        c.setFont("Helvetica", 9)
+        c.setFillColor(colors.HexColor("#aac4ff"))
+        c.drawCentredString(content_w / 2, logo_y - 44,
+                            "Sistema de Inscripciones Educativas")
+
+        # URL
+        c.setFont("Helvetica", 8)
+        c.setFillColor(colors.HexColor("#56ef9f"))
+        c.drawCentredString(content_w / 2, logo_y - 58, "superleads.mx")
+
+
+def _brand_closing_page():
+    """Devuelve el Flowable de la página de cierre de marca."""
+    content_w = W_CONTENT
+    # Altura del frame interior (letra menos márgenes del doc)
+    content_h = letter[1] - 2 * (0.65 * inch) - 0.38 * inch  # descontar header strip
+    return _BrandClosingPage(content_w, content_h)
 
 
 # ── Main PDF generators ────────────────────────────────────────────────────────
@@ -1012,7 +1582,7 @@ def generate_client_pdf(session, answers: dict, result: dict) -> str:
     doc = SimpleDocTemplate(
         buf, pagesize=letter,
         leftMargin=MARGIN, rightMargin=MARGIN,
-        topMargin=0.65*inch, bottomMargin=0.65*inch,
+        topMargin=0.65 * inch, bottomMargin=0.65 * inch,
         title=f"Rayos X — {answers.get('institution_name','')}"
     )
 
@@ -1026,58 +1596,20 @@ def generate_client_pdf(session, answers: dict, result: dict) -> str:
     institution    = answers.get("institution_name", "Institución")
     contact        = answers.get("contact_name", "")
     city           = answers.get("city", "")
+    inst_type      = answers.get("institution_type", "")
+    analyzed_at    = getattr(session, "analyzed_at", None)
 
-    # ── Cover / header ─────────────────────────────────────────────────────
-    story.extend(_journey_steps_pdf(s))
-    story.append(Paragraph("RAYOS X INSCRIPCIONES  ·  SUPERLEADS", s["brand"]))
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(institution, s["institution"]))
+    # ── Page 1: Cover (drawn entirely via onFirstPage callback) ────────────
+    # Just a PageBreak to push content to page 2; the cover is drawn by the canvas callback.
+    story.append(PageBreak())
 
-    meta_parts = [f"Contacto: {contact}" if contact else "",
-                  city,
-                  f"Sesión {session.short_code}",
-                  datetime.now().strftime("%d/%m/%Y")]
-    story.append(Paragraph("  ·  ".join(p for p in meta_parts if p), s["tagline"]))
-    story.append(Spacer(1, 4))
-
-    # Score row
-    scores = [
-        (f"{completeness:.0f}%", "Completitud\nde datos"),
-        (f"{certainty:.0f}%",    "Certeza del\ndiagnóstico"),
-    ]
-    if metrics.get("opportunity_value"):
-        scores.append((f"${metrics['opportunity_value']:,.0f}", "Oportunidad\nestimada"))
-    if metrics.get("gap_to_target") and int(metrics["gap_to_target"]) > 0:
-        scores.append((f"{int(metrics['gap_to_target']):,}", "Alumnos\nde brecha"))
-
-    score_cells = [[
-        [Paragraph(v, s["impact_big"]),
-         Paragraph(l, s["impact_label"])]
-        for v, l in scores
-    ]]
-    cw = W_CONTENT / len(scores)
-    st = Table(score_cells, colWidths=[cw]*len(scores))
-    st.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0),(-1,-1), C_PANEL),
-        ("GRID",          (0,0),(-1,-1), 0.4, colors.HexColor("#0d2070")),
-        ("TOPPADDING",    (0,0),(-1,-1), 12),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 12),
-        ("LEFTPADDING",   (0,0),(-1,-1), 14),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 14),
-        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
-    ]))
-    story.append(st)
-    story.append(Spacer(1, 10))
-    story.append(_hr())
-
-    # ── Opening ────────────────────────────────────────────────────────────
-    story.append(Paragraph("Lo que encontramos", s["section_title"]))
-    story.append(_opening_paragraph(answers, metrics, s))
-    story.append(Spacer(1, 6))
+    # ── Page 2: Executive Summary ──────────────────────────────────────────
+    story.extend(_executive_summary_block(answers, metrics, result, findings, s))
+    story.append(_hr(C_BLUE, thickness=0.4))
 
     if is_preliminary:
         story.append(Paragraph(
-            "⚠  Diagnóstico preliminar — datos suficientes para identificar el patrón principal, "
+            "Diagnostico preliminar — datos suficientes para identificar el patrón principal, "
             "pero con certeza reducida. Más datos del embudo elevarían la confianza.",
             ParagraphStyle("warn", fontName="Helvetica-BoldOblique", fontSize=9,
                            textColor=C_YELLOW, leading=14, spaceAfter=6,
@@ -1086,13 +1618,13 @@ def generate_client_pdf(session, answers: dict, result: dict) -> str:
                            borderPad=6)
         ))
 
-    # ── Funnel table ───────────────────────────────────────────────────────
-    funnel_rows = _funnel_table(metrics, s)
+    # ── Funnel bars ────────────────────────────────────────────────────────
+    funnel_rows = _funnel_bars(metrics, s)
     if funnel_rows:
         story.append(Paragraph("El embudo, con sus fugas", s["section_title"]))
         story.append(Paragraph(
-            "La columna 'Pérdida absoluta' muestra cuántos prospectos desaparecen en cada transición. "
-            "El color indica si esa conversión está en zona crítica (rojo), de atención (amarillo) o saludable (verde).",
+            "Cada barra muestra qué tan lejos llega un prospecto antes de perderse. "
+            "El porcentaje de la derecha indica la conversión desde la etapa anterior.",
             s["muted"]
         ))
         story.append(Spacer(1, 6))
@@ -1126,20 +1658,29 @@ def generate_client_pdf(session, answers: dict, result: dict) -> str:
         for i, f in enumerate(findings, 1):
             story.extend(_finding_block_client(f, i, s))
 
-    # ── Dirección Estratégica (always present) ─────────────────────────────
+    # ── Dirección Estratégica — 2x2 grid ──────────────────────────────────
     story.append(Paragraph("La recomendación del sistema", s["section_title"]))
     story.extend(_strategic_direction_block(s))
 
-    # ── Closing ────────────────────────────────────────────────────────────
-    story.extend(_closing_block(s, is_preliminary))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph(
-        f"superleads.mx  ·  Generado el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}  ·  "
-        f"Sesión {session.short_code}  ·  Este reporte es confidencial.",
-        s["footer"]
-    ))
+    # ── Page final: CTA dedicada ───────────────────────────────────────────
+    story.extend(_closing_page(s, is_preliminary))
 
-    doc.build(story, onFirstPage=_bg, onLaterPages=_bg)
+    # ── Build ──────────────────────────────────────────────────────────────
+    def _first_page(canvas, doc):
+        """Page 1: draw the full premium cover."""
+        _draw_cover(
+            canvas, doc,
+            institution=institution,
+            city=city,
+            inst_type=inst_type,
+            short_code=session.short_code,
+            analyzed_at=analyzed_at,
+        )
+
+    def _later_pages(canvas, doc):
+        _bg(canvas, doc)
+
+    doc.build(story, onFirstPage=_first_page, onLaterPages=_later_pages)
     pdf_bytes = buf.getvalue()
     with open(filepath, "wb") as fh:
         fh.write(pdf_bytes)
@@ -1182,7 +1723,7 @@ def generate_internal_pdf(session, answers: dict, result: dict) -> str:
 
     # Internal warning banner
     warn = Table([[Paragraph(
-        "⚠  DOCUMENTO INTERNO — NO COMPARTIR CON EL PROSPECTO",
+        "DOCUMENTO INTERNO — NO COMPARTIR CON EL PROSPECTO",
         s["internal_warn"]
     )]], colWidths=[W_CONTENT])
     warn.setStyle(TableStyle([
@@ -1200,7 +1741,7 @@ def generate_internal_pdf(session, answers: dict, result: dict) -> str:
     story.append(Paragraph("Diagnóstico", s["section_title"]))
     story.append(_opening_paragraph(answers, metrics, s))
     story.append(Spacer(1, 6))
-    funnel_rows = _funnel_table(metrics, s)
+    funnel_rows = _funnel_bars(metrics, s)
     if funnel_rows:
         story.extend(funnel_rows)
         story.append(Spacer(1, 10))
